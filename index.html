@@ -2527,8 +2527,13 @@ function importCSV(input) {
       if (hasDutyData && dutyRows.length > 0)      parts.push(`소임 ${dutyRows.length}개`);
       if (hasPersonnelData && personnel.length > 0) parts.push(`인원 ${personnel.length}명`);
       const confirmed = confirm(
-        `기존 데이터(${parts.join(', ')})가 있습니다.\n\n` +
-        `CSV 파일로 교체하면 기존 데이터는 모두 삭제됩니다.\n\n` +
+        `⚠ 주의\n\n` +
+        `CSV를 업로드하면 다음 데이터가 모두 삭제됩니다.\n\n` +
+        `  • 현재 날짜(${currentDate})의 소임 데이터 전체\n` +
+        `  • 등록된 인원 데이터 전체\n\n` +
+        `삭제 후 CSV 파일의 데이터로 교체됩니다.\n` +
+        `(다른 날짜의 소임 데이터는 유지됩니다)\n` +
+        `이 작업은 되돌릴 수 없습니다.\n\n` +
         `계속하시겠습니까?`
       );
       if (!confirmed) { toast('취소되었습니다.'); return; }
@@ -2536,41 +2541,7 @@ function importCSV(input) {
 
     let dutyAdded = 0, personnelAdded = 0;
 
-    // ── 소임 파싱 ──
-    if (hasDutyData) {
-      const dHeader = parseCSVLine(dutyLines[0]);
-      const iStart  = getIdx(dHeader, '시작');
-      const iEnd    = getIdx(dHeader, '종료');
-      const iDuty   = getIdx(dHeader, '소임');
-      const iAssign = getIdx(dHeader, '인원');
-      if (iStart !== -1 && iDuty !== -1) {
-        snapshot();
-        dutyRows = []; // 기존 소임 전체 삭제
-        for (let i = 1; i < dutyLines.length; i++) {
-          const cols = parseCSVLine(dutyLines[i]);
-          const start = (cols[iStart] || '').trim();
-          const end   = (cols[iEnd]   || '').trim();
-          const duty  = (cols[iDuty]  || '').trim();
-          if (!start && !duty) continue;
-          const assignRaw = iAssign !== -1 ? (cols[iAssign] || '').trim() : '';
-          let assigned = [];
-          if (assignRaw === '전원') {
-            assigned = personnel.map(p => p.name);
-          } else if (assignRaw) {
-            assigned = assignRaw.split('/').map(s => s.trim()).filter(Boolean);
-          }
-          dutyRows.push({ id: Date.now() + i, start, end, duty, assigned });
-          dutyAdded++;
-        }
-        save();
-        rebuildDutyTable();
-        refreshAllChipsConflicts();
-        renderOverview();
-        refreshAlertPanel();
-      }
-    }
-
-    // ── 인원 파싱 ──
+    // ── 인원 파싱 먼저 (소임의 '전원' 처리가 personnel을 참조하므로) ──
     if (hasPersonnelData) {
       const pHeader = parseCSVLine(personnelLines[0]);
       const iName = getIdx(pHeader, '이름');
@@ -2590,9 +2561,47 @@ function importCSV(input) {
         save();
         renderPersonnelList();
         renderPositionButtons();
-        refreshAllChips();
-        renderOverview();
       }
+    }
+
+    // ── 소임 파싱 (인원 파싱 후 실행하여 '전원' 처리 정확히 반영) ──
+    if (hasDutyData) {
+      const dHeader = parseCSVLine(dutyLines[0]);
+      const iStart  = getIdx(dHeader, '시작');
+      const iEnd    = getIdx(dHeader, '종료');
+      const iDuty   = getIdx(dHeader, '소임');
+      const iAssign = getIdx(dHeader, '인원');
+      if (iStart !== -1 && iDuty !== -1) {
+        snapshot();
+        dutyRows = []; // 기존 소임 전체 삭제
+        for (let i = 1; i < dutyLines.length; i++) {
+          const cols = parseCSVLine(dutyLines[i]);
+          const start = (cols[iStart] || '').trim();
+          const end   = (cols[iEnd]   || '').trim();
+          const duty  = (cols[iDuty]  || '').trim();
+          if (!start && !duty) continue;
+          const assignRaw = iAssign !== -1 ? (cols[iAssign] || '').trim() : '';
+          let assigned = [];
+          if (assignRaw === '전원') {
+            assigned = personnel.map(p => p.name); // 이미 파싱된 인원 사용
+          } else if (assignRaw) {
+            assigned = assignRaw.split('/').map(s => s.trim()).filter(Boolean);
+          }
+          dutyRows.push({ id: Date.now() + i, start, end, duty, assigned });
+          dutyAdded++;
+        }
+        save();
+        rebuildDutyTable();
+        refreshAllChipsConflicts();
+        renderOverview();
+        refreshAlertPanel();
+      }
+    }
+
+    // 인원 관련 UI 최종 갱신
+    if (hasPersonnelData) {
+      refreshAllChips();
+      renderOverview();
     }
 
     const msgs = [];
