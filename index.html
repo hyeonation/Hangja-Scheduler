@@ -14,7 +14,7 @@
   --red:#f85149;--orange:#e3b341;--blue:#58a6ff;--purple:#bc8cff;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow-y:hidden;overflow-x:auto;min-width:1060px;display:flex;flex-direction:column}
 
 /* HEADER */
 
@@ -42,7 +42,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* TABLE */
 .table-wrap{overflow:visible;padding:0 24px 32px}
-table{width:100%;border-collapse:collapse;margin-top:16px}
+table{width:100%;min-width:760px;border-collapse:collapse;margin-top:16px}
 thead th{height:36px;padding:0 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:var(--thead-top,0);white-space:nowrap;z-index:40}
 thead th:first-child{border-radius:6px 0 0 0}
 thead th:last-child{border-radius:0 6px 0 0}
