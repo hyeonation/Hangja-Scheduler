@@ -1105,8 +1105,8 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
 // STATE
 // ══════════════════════════════════════════
 let personnel = JSON.parse(localStorage.getItem('personnel') || '[]');
-let positions = JSON.parse(localStorage.getItem('positions') || '["당직사관","위병사령","불침번","취사병","운전병"]');
-let selectedPos = '';
+let positions = JSON.parse(localStorage.getItem('positions') || '["행자","스탭","바라지"]');
+let selectedPos = '행자';
 
 // ── TIME RANGE STATE ──
 // stored as hours (0–24), inclusive start, exclusive end
@@ -2648,8 +2648,8 @@ function addPersonnel(){
   const p={id:Date.now(),name,position:selectedPos,note:noteEl.value.trim()};
   personnel.push(p); save();
   nameEl.value=''; noteEl.value='';
-  selectedPos='';
-  document.querySelectorAll('#posGroup .tag-btn').forEach(b=>b.classList.remove('sel'));
+  selectedPos='행자';
+  document.querySelectorAll('#posGroup .tag-btn').forEach(b=>b.classList.toggle('sel', b.dataset.pos==='행자'));
   renderPersonnelList(); refreshAllChips(); renderOverview();
   toast(`✓ ${p.position?p.position+' ':''}${p.name} 등록 완료`);
 }
