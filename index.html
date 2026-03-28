@@ -895,6 +895,10 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
       </div>
     </div>
     <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV 내보내기</button>
+    <label class="btn btn-ghost" style="cursor:pointer" title="CSV 파일을 업로드하여 소임/인원 데이터를 불러옵니다">
+      ⬆ CSV 가져오기
+      <input type="file" accept=".csv" style="display:none" onchange="importCSV(this)">
+    </label>
     <button class="btn btn-ghost btn-toggle-personnel" id="togglePersonnelBtn" onclick="togglePersonnelView()" title="인원 이름 표시/숨기기">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="6" r="3"/><path d="M1 6s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z"/></svg>
       인원 감추기
@@ -2428,31 +2432,194 @@ function refreshAllChips(){
 }
 
 function exportCSV(){
-  if(!dutyRows.length){toast('내보낼 데이터가 없습니다.');return;}
-  // 파일명: 날짜(연월일) 형식
+  if(!dutyRows.length && !personnel.length){toast('내보낼 데이터가 없습니다.');return;}
   const d = parseDate(currentDate);
   const fileName = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_소임배치표.csv';
 
-  let csv='\uFEFF시작시간,종료시간,소요(분),소임,인원\n';
+  let csv='\uFEFF';
+
+  // ── 소임 섹션 ──
+  csv+='[소임]\n';
+  csv+='시작시간,종료시간,소요(분),소임,인원\n';
   dutyRows.forEach(r=>{
-    // 전원 여부: 등록된 personnel 전원이 assigned에 포함된 경우
     const allNames = personnel.map(p=>p.name);
     const isAll = allNames.length > 0 && allNames.every(n=>r.assigned.includes(n));
-    // personnel 배열 순서 기준으로 인원 정렬
     const personnelOrder = personnel.map(p=>p.name);
     const sortedAssigned = [...r.assigned].sort((a,b)=>{
-      const ia = personnelOrder.indexOf(a), ib = personnelOrder.indexOf(b);
+      const ia=personnelOrder.indexOf(a), ib=personnelOrder.indexOf(b);
       if(ia===-1&&ib===-1) return a.localeCompare(b,'ko');
       if(ia===-1) return 1; if(ib===-1) return -1;
       return ia-ib;
     });
     const assignedText = isAll ? '전원' : sortedAssigned.join(' / ');
-    const s=parseMin(r.start),e=parseMin(r.end); const dur=(s!==null&&e!==null)?((e-s+1440)%1440):''; csv+=`"${r.start}","${r.end}","${dur}","${r.duty}","${assignedText}"\n`;
+    const s=parseMin(r.start),e=parseMin(r.end);
+    const dur=(s!==null&&e!==null)?((e-s+1440)%1440):'';
+    csv+=`"${r.start}","${r.end}","${dur}","${r.duty}","${assignedText}"\n`;
   });
+
+  // ── 인원 섹션 ──
+  csv+='\n[인원]\n';
+  csv+='이름,직책,특이사항\n';
+  personnel.forEach(p=>{
+    csv+=`"${p.name}","${p.position||''}","${p.note||''}"\n`;
+  });
+
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download=fileName; a.click();
-  toast('✓ CSV 저장 완료');
+  toast('✓ CSV 저장 완료 (소임 + 인원)');
+}
+
+// ══════════════════════════════════════════
+// CSV IMPORT
+// ══════════════════════════════════════════
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result.replace(/^\uFEFF/, '');
+    const allLines = text.split(/\r?\n/);
+
+    // ── 섹션 분리: [소임] / [인원] 구분자 지원 ──
+    let dutyLines = [], personnelLines = [];
+    let mode = null; // null | 'duty' | 'personnel'
+    let hasSections = false;
+
+    for (const raw of allLines) {
+      const line = raw.trim();
+      if (line === '[소임]')      { mode = 'duty';      hasSections = true; continue; }
+      if (line === '[인원]')      { mode = 'personnel'; hasSections = true; continue; }
+      if (!line) continue;
+      if (hasSections) {
+        if (mode === 'duty')      dutyLines.push(line);
+        else if (mode === 'personnel') personnelLines.push(line);
+      } else {
+        // 섹션 구분자 없는 구형 CSV: 헤더로 타입 판별
+        if (dutyLines.length === 0 && personnelLines.length === 0) {
+          const h = parseCSVLine(line);
+          if (h.some(c => c.includes('시작'))) mode = 'duty';
+          else if (h.some(c => c === '이름'))  mode = 'personnel';
+        }
+        if (mode === 'duty')      dutyLines.push(line);
+        else if (mode === 'personnel') personnelLines.push(line);
+      }
+    }
+
+    // 헤더 파싱 헬퍼
+    function getIdx(header, ...keywords) {
+      return header.findIndex(h => keywords.some(k => h.includes(k)));
+    }
+
+    const hasDutyData      = dutyLines.length > 1;
+    const hasPersonnelData = personnelLines.length > 1;
+
+    if (!hasDutyData && !hasPersonnelData) {
+      toast('⚠ 유효한 CSV 파일이 아닙니다.'); return;
+    }
+
+    // 기존 데이터 확인 메시지 (기존 데이터 전부 삭제 후 교체)
+    const hasExisting = (hasDutyData && dutyRows.length > 0) || (hasPersonnelData && personnel.length > 0);
+    if (hasExisting) {
+      const parts = [];
+      if (hasDutyData && dutyRows.length > 0)      parts.push(`소임 ${dutyRows.length}개`);
+      if (hasPersonnelData && personnel.length > 0) parts.push(`인원 ${personnel.length}명`);
+      const confirmed = confirm(
+        `기존 데이터(${parts.join(', ')})가 있습니다.\n\n` +
+        `CSV 파일로 교체하면 기존 데이터는 모두 삭제됩니다.\n\n` +
+        `계속하시겠습니까?`
+      );
+      if (!confirmed) { toast('취소되었습니다.'); return; }
+    }
+
+    let dutyAdded = 0, personnelAdded = 0;
+
+    // ── 소임 파싱 ──
+    if (hasDutyData) {
+      const dHeader = parseCSVLine(dutyLines[0]);
+      const iStart  = getIdx(dHeader, '시작');
+      const iEnd    = getIdx(dHeader, '종료');
+      const iDuty   = getIdx(dHeader, '소임');
+      const iAssign = getIdx(dHeader, '인원');
+      if (iStart !== -1 && iDuty !== -1) {
+        snapshot();
+        dutyRows = []; // 기존 소임 전체 삭제
+        for (let i = 1; i < dutyLines.length; i++) {
+          const cols = parseCSVLine(dutyLines[i]);
+          const start = (cols[iStart] || '').trim();
+          const end   = (cols[iEnd]   || '').trim();
+          const duty  = (cols[iDuty]  || '').trim();
+          if (!start && !duty) continue;
+          const assignRaw = iAssign !== -1 ? (cols[iAssign] || '').trim() : '';
+          let assigned = [];
+          if (assignRaw === '전원') {
+            assigned = personnel.map(p => p.name);
+          } else if (assignRaw) {
+            assigned = assignRaw.split('/').map(s => s.trim()).filter(Boolean);
+          }
+          dutyRows.push({ id: Date.now() + i, start, end, duty, assigned });
+          dutyAdded++;
+        }
+        save();
+        rebuildDutyTable();
+        refreshAllChipsConflicts();
+        renderOverview();
+        refreshAlertPanel();
+      }
+    }
+
+    // ── 인원 파싱 ──
+    if (hasPersonnelData) {
+      const pHeader = parseCSVLine(personnelLines[0]);
+      const iName = getIdx(pHeader, '이름');
+      const iPos  = getIdx(pHeader, '직책');
+      const iNote = getIdx(pHeader, '특이사항', '메모');
+      if (iName !== -1) {
+        personnel = []; // 기존 인원 전체 삭제
+        for (let i = 1; i < personnelLines.length; i++) {
+          const cols = parseCSVLine(personnelLines[i]);
+          const name = (cols[iName] || '').trim();
+          if (!name) continue;
+          const position = iPos  !== -1 ? (cols[iPos]  || '').trim() : '';
+          const note     = iNote !== -1 ? (cols[iNote] || '').trim() : '';
+          personnel.push({ id: Date.now() + i * 1000, name, position, note });
+          personnelAdded++;
+        }
+        save();
+        renderPersonnelList();
+        renderPositionButtons();
+        refreshAllChips();
+        renderOverview();
+      }
+    }
+
+    const msgs = [];
+    if (dutyAdded)      msgs.push(`소임 ${dutyAdded}개`);
+    if (personnelAdded) msgs.push(`인원 ${personnelAdded}명`);
+    toast('✓ ' + (msgs.length ? msgs.join(', ') + ' 불러오기 완료' : '변경 없음'));
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// CSV 한 줄을 컬럼 배열로 파싱 (따옴표 처리 포함)
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
 }
 
 // ══════════════════════════════════════════
