@@ -53,7 +53,22 @@ tbody td{height:52px;padding:0 12px;font-size:13px;vertical-align:middle}
 /* INPUTS */
 .input{height:32px;padding:0 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
 .input:focus{border-color:var(--accent)}
-.input-time{font-family:'JetBrains Mono',monospace;font-size:13px;width:90px}
+.input-time{font-family:'JetBrains Mono',monospace;font-size:13px;width:72px;text-align:center}
+.time-spin-wrap{display:inline-flex;align-items:center;position:relative;gap:0}
+.time-spin-btns{display:flex;flex-direction:column;margin-left:2px;opacity:0;transition:opacity .12s}
+.time-spin-wrap:hover .time-spin-btns{opacity:1}
+/* 소요(분) 브라우저 기본 스피너 숨김 */
+.inp-dur::-webkit-inner-spin-button,
+.inp-dur::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.inp-dur{-moz-appearance:textfield;appearance:textfield}
+.time-spin-btn{
+  width:18px;height:14px;border:1px solid var(--border);background:var(--surface2);
+  color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:9px;line-height:1;padding:0;transition:all .12s;
+}
+.time-spin-btn:first-child{border-radius:4px 4px 0 0;border-bottom:none}
+.time-spin-btn:last-child{border-radius:0 0 4px 4px}
+.time-spin-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
 .input-duty{width:180px}
 
 /* CHIPS */
@@ -954,9 +969,9 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
       <thead><tr>
         <th class="th-cb"><input type="checkbox" class="row-select-cb" id="selectAllCb" title="전체 선택" onchange="toggleSelectAll(this.checked)"></th>
         <th style="width:28px"></th>
-        <th style="width:36px">#</th>
-        <th style="width:100px">시작 시간</th>
-        <th style="width:100px">종료 시간</th>
+        <th style="width:36px;text-align:right">#</th>
+        <th style="width:100px;text-align:center">시작 시간</th>
+        <th style="width:100px;text-align:center">종료 시간</th>
         <th style="width:80px;text-align:center">소요(분)</th>
         <th style="width:200px">소임</th>
         <th style="width:68px;text-align:center">총 인원</th>
@@ -1258,8 +1273,6 @@ function redo() {
 
 // ── ROW SELECTION ──
 const selectedIds = new Set();
-let selAnchorIdx = -1;
-let selCursorIdx = -1;
 
 // ── ROW DRAG-SELECT (tbody 위에서 마우스 드래그로 체크박스 선택) ──
 (function() {
@@ -1324,10 +1337,6 @@ let selCursorIdx = -1;
 function onRowSelectChange(rowId, checked) {
   if (checked) {
     selectedIds.add(rowId);
-    // anchor = 방금 체크한 행의 인덱스
-    const rows = Array.from(document.querySelectorAll('#dutyBody tr'));
-    selAnchorIdx = rows.findIndex(r => parseInt(r.dataset.id) === rowId);
-    selCursorIdx = selAnchorIdx;
   } else {
     selectedIds.delete(rowId);
   }
@@ -1348,7 +1357,6 @@ function toggleSelectAll(checked) {
 
 function clearSelection() {
   selectedIds.clear();
-  selAnchorIdx = -1; selCursorIdx = -1;
   document.querySelectorAll('#dutyBody .row-select-cb').forEach(cb => cb.checked = false);
   document.querySelectorAll('#dutyBody tr').forEach(tr => tr.classList.remove('selected-row'));
   updateBulkToolbar();
@@ -1545,42 +1553,6 @@ document.addEventListener('keydown', e => {
 
   if (!inPage0) return;
 
-  // Shift+↑/↓: anchor 기준 범위 선택 (항상 동작)
-  if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-    const rows = Array.from(document.querySelectorAll('#dutyBody tr'));
-    if (!rows.length) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    // anchor 미설정이면 현재 선택된 행 중 첫번째를 anchor로
-    if (selAnchorIdx < 0) {
-      if (selectedIds.size > 0) {
-        const firstSelectedId = [...selectedIds][0];
-        selAnchorIdx = rows.findIndex(r => parseInt(r.dataset.id) === firstSelectedId);
-        selCursorIdx = selAnchorIdx;
-      } else {
-        selAnchorIdx = 0; selCursorIdx = 0;
-      }
-    }
-
-    const dir = e.key === 'ArrowDown' ? 1 : -1;
-    selCursorIdx = Math.max(0, Math.min(rows.length - 1, selCursorIdx + dir));
-
-    const lo = Math.min(selAnchorIdx, selCursorIdx);
-    const hi = Math.max(selAnchorIdx, selCursorIdx);
-    rows.forEach((r, i) => {
-      const id = parseInt(r.dataset.id);
-      const cb = r.querySelector('.row-select-cb');
-      if (i >= lo && i <= hi) {
-        selectedIds.add(id); r.classList.add('selected-row'); if (cb) cb.checked = true;
-      } else {
-        selectedIds.delete(id); r.classList.remove('selected-row'); if (cb) cb.checked = false;
-      }
-    });
-
-    updateBulkToolbar(); updateSelectAllCb();
-    return;
-  }
 
   // Ctrl+Enter: 행 추가
   if (ctrl && e.key === 'Enter') {
@@ -1959,6 +1931,20 @@ function copyDutyRow(rowId) {
   toast('행 복사 완료');
 }
 
+// ── CELL NAVIGATION (방향키로 같은 컬럼 위아래 이동) ──
+function navigateDutyCell(currentInp, direction) {
+  const col = currentInp.dataset.col;
+  if (!col) return false;
+  const rows = Array.from(document.querySelectorAll('#dutyBody tr'));
+  const currentTr = currentInp.closest('tr');
+  const idx = rows.indexOf(currentTr);
+  const targetIdx = direction === 'down' ? idx + 1 : idx - 1;
+  if (targetIdx < 0 || targetIdx >= rows.length) return false;
+  const targetInp = rows[targetIdx].querySelector(`[data-col="${col}"]`);
+  if (targetInp) { targetInp.focus(); targetInp.select(); return true; }
+  return false;
+}
+
 function renderDutyRow(row) {
   const tbody=document.getElementById('dutyBody');
   const tr=document.createElement('tr');
@@ -1985,9 +1971,9 @@ function renderDutyRow(row) {
   const tdN=document.createElement('td'); tdN.className='row-num'; tdN.textContent=tbody.children.length+1; tr.appendChild(tdN);
 
   // time inputs — start changes shift end by same delta (duration preserved)
-  const tdStart=document.createElement('td');
+  const tdStart=document.createElement('td'); tdStart.style.textAlign='center';
   const inpStart=document.createElement('input');
-  inpStart.type='text'; inpStart.className='input input-time';
+  inpStart.type='text'; inpStart.className='input input-time'; inpStart.dataset.col='start';
   inpStart.value=row.start; inpStart.placeholder='00:00'; inpStart.maxLength=5;
   inpStart.dataset.prev=row.start;
   // onfocus: 편집 시작 전 snapshot (되돌리기용)
@@ -1999,6 +1985,33 @@ function renderDutyRow(row) {
     renderOverview(); refreshAllChipsConflicts();
   };
   // onblur: 입력 완료 후 duration 유지하며 종료시간 이동
+  inpStart.title='↑↓ : 위아래 행 이동\nShift+↑↓ : ±5분 조정 (종료시간 함께 이동)';
+  inpStart.onkeydown=e=>{
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+      e.preventDefault();
+      if(e.shiftKey){
+        // Shift+방향키: ±5분 조정 (소요시간 유지, 종료시간도 함께 이동)
+        const curRow=dutyRows.find(r=>r.id==row.id); if(!curRow) return;
+        const s=parseMin(curRow.start), en=parseMin(curRow.end);
+        if(s===null) return;
+        const delta=e.key==='ArrowUp'?-5:5;
+        const newS=((s+delta)%1440+1440)%1440;
+        const toStr=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+        curRow.start=toStr(newS);
+        inpStart.value=curRow.start;
+        inpStart.dataset.prev=curRow.start;
+        if(en!==null){
+          const newE=((en+delta)%1440+1440)%1440;
+          curRow.end=toStr(newE);
+          const endInp=tr.querySelector('.inp-end'); if(endInp) endInp.value=curRow.end;
+        }
+        updateRowData(row.id,'start',curRow.start);
+        save(); renderOverview(); refreshAllChipsConflicts();
+      } else {
+        navigateDutyCell(inpStart, e.key==='ArrowDown'?'down':'up');
+      }
+    }
+  };
   inpStart.onblur=e=>{
     const newVal=e.target.value;
     const prevS=parseMin(e.target.dataset.prev);
@@ -2023,11 +2036,23 @@ function renderDutyRow(row) {
     }
     e.target.dataset.prev=newVal;
   };
-  tdStart.appendChild(inpStart); tr.appendChild(tdStart);
+  // 시작시간 스피너 버튼
+  const startWrap=document.createElement('div'); startWrap.className='time-spin-wrap';
+  startWrap.appendChild(inpStart);
+  const startBtns=document.createElement('div'); startBtns.className='time-spin-btns';
+  const startUp=document.createElement('button'); startUp.className='time-spin-btn';
+  startUp.innerHTML='▲'; startUp.title='Shift+↑ : +5분';
+  startUp.onmousedown=e=>{e.preventDefault();inpStart.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',shiftKey:true,bubbles:true}));};
+  const startDn=document.createElement('button'); startDn.className='time-spin-btn';
+  startDn.innerHTML='▼'; startDn.title='Shift+↓ : -5분';
+  startDn.onmousedown=e=>{e.preventDefault();inpStart.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',shiftKey:true,bubbles:true}));};
+  startBtns.appendChild(startUp); startBtns.appendChild(startDn);
+  startWrap.appendChild(startBtns);
+  tdStart.appendChild(startWrap); tr.appendChild(tdStart);
 
-  const tdEnd=document.createElement('td');
+  const tdEnd=document.createElement('td'); tdEnd.style.textAlign='center';
   const inpEnd=document.createElement('input');
-  inpEnd.type='text'; inpEnd.className='input input-time inp-end';
+  inpEnd.type='text'; inpEnd.className='input input-time inp-end'; inpEnd.dataset.col='end';
   inpEnd.value=row.end; inpEnd.placeholder='00:00'; inpEnd.maxLength=5;
   inpEnd.onfocus=()=>{ snapshot(); };
   inpEnd.oninput=e=>{
@@ -2043,14 +2068,51 @@ function renderDutyRow(row) {
     renderOverview();refreshAllChipsConflicts();
   };
   inpEnd.onblur=()=>{};
-  tdEnd.appendChild(inpEnd); tr.appendChild(tdEnd);
+  inpEnd.title='↑↓ : 위아래 행 이동\nShift+↑↓ : ±5분 조정';
+  inpEnd.onkeydown=e=>{
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+      e.preventDefault();
+      if(e.shiftKey){
+        // Shift+방향키: ±5분 조정
+        const curRow=dutyRows.find(r=>r.id==row.id); if(!curRow) return;
+        const en=parseMin(curRow.end); if(en===null) return;
+        const delta=e.key==='ArrowUp'?-5:5;
+        const newE=((en+delta)%1440+1440)%1440;
+        const toStr=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+        curRow.end=toStr(newE);
+        inpEnd.value=curRow.end;
+        // 소요시간 업데이트
+        const s=parseMin(curRow.start);
+        const durInp=tr.querySelector('.inp-dur');
+        if(durInp&&s!==null){const d=((newE-s)+1440)%1440;durInp.value=d>0?d:'';}
+        updateRowData(row.id,'end',curRow.end);
+        save(); renderOverview(); refreshAllChipsConflicts();
+      } else {
+        navigateDutyCell(inpEnd, e.key==='ArrowDown'?'down':'up');
+      }
+    }
+  };
+  // 종료시간 스피너 버튼
+  const endWrap=document.createElement('div'); endWrap.className='time-spin-wrap';
+  endWrap.appendChild(inpEnd);
+  const endBtns=document.createElement('div'); endBtns.className='time-spin-btns';
+  const endUp=document.createElement('button'); endUp.className='time-spin-btn';
+  endUp.innerHTML='▲'; endUp.title='Shift+↑ : +5분';
+  endUp.onmousedown=e=>{e.preventDefault();inpEnd.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',shiftKey:true,bubbles:true}));};
+  const endDn=document.createElement('button'); endDn.className='time-spin-btn';
+  endDn.innerHTML='▼'; endDn.title='Shift+↓ : -5분';
+  endDn.onmousedown=e=>{e.preventDefault();inpEnd.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',shiftKey:true,bubbles:true}));};
+  endBtns.appendChild(endUp); endBtns.appendChild(endDn);
+  endWrap.appendChild(endBtns);
+  tdEnd.appendChild(endWrap); tr.appendChild(tdEnd);
 
   // 소요시간 (분)
   const tdDur=document.createElement('td'); tdDur.style.cssText='text-align:center';
   const inpDur=document.createElement('input');
-  inpDur.type='number'; inpDur.className='input inp-dur';
-  inpDur.style.cssText='width:68px;text-align:center;padding:0 6px;font-family:\'JetBrains Mono\',monospace;font-size:12px';
+  inpDur.type='number'; inpDur.className='input inp-dur'; inpDur.dataset.col='dur';
+  inpDur.style.cssText='width:68px;text-align:center;padding:0 6px;font-family:\'JetBrains Mono\',monospace;font-size:12px;-moz-appearance:textfield;appearance:textfield';
   inpDur.placeholder='분'; inpDur.min=1; inpDur.max=1440;
+  inpDur.title='↑↓ : 위아래 행 이동\nShift+↑↓ : ±5분 조정';
   // 초기값: start, end 모두 있으면 계산
   (()=>{const s=parseMin(row.start),e=parseMin(row.end);if(s!==null&&e!==null){const d=((e-s)+1440)%1440;if(d>0)inpDur.value=d;}})();
   inpDur.onfocus=()=>{ snapshot(); };
@@ -2060,7 +2122,6 @@ function renderDutyRow(row) {
     if(!curRow) return;
     const s=parseMin(curRow.start);
     if(s===null||isNaN(mins)||mins<=0) return;
-    // 소요시간으로 종료시간 계산
     const newE=((s+mins)%1440+1440)%1440;
     const hh=String(Math.floor(newE/60)).padStart(2,'0');
     const mm=String(newE%60).padStart(2,'0');
@@ -2071,39 +2132,46 @@ function renderDutyRow(row) {
     renderOverview(); refreshAllChipsConflicts();
   };
   inpDur.onblur=()=>{};
-  // 키보드·마우스 스피너 모두 현재값 기준 ±5
-  const _durStep = e=>{
+  // 키보드: 기본 화살표=행 이동, Shift+화살표=±5분 조정
+  inpDur.addEventListener('keydown', e=>{
     if(e.key==='ArrowUp'||e.key==='ArrowDown'){
       e.preventDefault();
-      const cur=parseInt(inpDur.value)||0;
-      inpDur.value=e.key==='ArrowUp'?cur+5:Math.max(1,cur-5);
-      inpDur.dispatchEvent(new Event('input'));
-    }
-  };
-  inpDur.addEventListener('keydown', _durStep);
-  // 마우스 스피너 클릭: 기본 동작 차단 후 직접 ±5
-  inpDur.addEventListener('mousedown', e=>{
-    // 스피너 버튼 영역 감지 (input 오른쪽 끝)
-    const rect=inpDur.getBoundingClientRect();
-    if(e.clientX >= rect.right-20){
-      e.preventDefault();
-      const cur=parseInt(inpDur.value)||0;
-      // 클릭 위치가 위쪽 절반이면 +5, 아래쪽이면 -5
-      const mid=rect.top+rect.height/2;
-      inpDur.value=e.clientY<mid?cur+5:Math.max(1,cur-5);
-      inpDur.dispatchEvent(new Event('input'));
+      if(e.shiftKey){
+        const cur=parseInt(inpDur.value)||0;
+        inpDur.value=e.key==='ArrowUp'?cur+5:Math.max(1,cur-5);
+        inpDur.dispatchEvent(new Event('input'));
+      } else {
+        navigateDutyCell(inpDur, e.key==='ArrowDown'?'down':'up');
+      }
     }
   });
-  tdDur.appendChild(inpDur); tr.appendChild(tdDur);
+  // 커스텀 스피너 버튼 (시작/종료시간과 동일한 UI)
+  const durWrap=document.createElement('div'); durWrap.className='time-spin-wrap';
+  durWrap.style.justifyContent='center';
+  durWrap.appendChild(inpDur);
+  const durBtns=document.createElement('div'); durBtns.className='time-spin-btns';
+  const durUp=document.createElement('button'); durUp.className='time-spin-btn';
+  durUp.innerHTML='▲'; durUp.title='Shift+↑ : +5분';
+  durUp.onmousedown=e=>{e.preventDefault();inpDur.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',shiftKey:true,bubbles:true}));};
+  const durDn=document.createElement('button'); durDn.className='time-spin-btn';
+  durDn.innerHTML='▼'; durDn.title='Shift+↓ : -5분';
+  durDn.onmousedown=e=>{e.preventDefault();inpDur.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',shiftKey:true,bubbles:true}));};
+  durBtns.appendChild(durUp); durBtns.appendChild(durDn);
+  durWrap.appendChild(durBtns);
+  tdDur.appendChild(durWrap); tr.appendChild(tdDur);
 
   // duty input
   const tdD=document.createElement('td');
   const inD=document.createElement('input');
-  inD.type='text'; inD.className='input input-duty';
+  inD.type='text'; inD.className='input input-duty'; inD.dataset.col='duty';
   inD.value=row.duty; inD.placeholder='예) 대강당 방석 깔기';
   inD.onfocus=()=>{ snapshot(); };
   inD.oninput=e=>{updateRowData(row.id,'duty',e.target.value);renderOverview();};
   inD.onblur=()=>{};
+  inD.onkeydown=e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();navigateDutyCell(inD,'down');}
+    else if(e.key==='ArrowUp'){e.preventDefault();navigateDutyCell(inD,'up');}
+  };
   tdD.appendChild(inD); tr.appendChild(tdD);
 
   // count column
