@@ -2863,6 +2863,7 @@ function addPosition(){
 }
 
 function deletePosition(pos){
+  if(!confirm(`"${pos}" 직책을 삭제하시겠습니까?`)) return;
   positions=positions.filter(p=>p!==pos);
   if(selectedPos===pos) selectedPos='';
   save(); renderPositionButtons();
