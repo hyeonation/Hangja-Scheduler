@@ -1908,7 +1908,20 @@ function renderOverview() {
 // ══════════════════════════════════════════
 function addDutyRow(data) {
   const id=data?.id||Date.now();
-  const row={id,start:data?.start||'',end:data?.end||'',duty:data?.duty||'',assigned:data?.assigned||[]};
+
+  // data 없이 새 행 추가 시: 등록된 소임 중 가장 늦은 종료시간을 시작시간으로
+  let defaultStart = '';
+  if (!data) {
+    const ends = dutyRows
+      .map(r => parseMin(r.end))
+      .filter(m => m !== null);
+    if (ends.length) {
+      const latestMin = Math.max(...ends);
+      defaultStart = String(Math.floor(latestMin/60)).padStart(2,'0') + ':' + String(latestMin%60).padStart(2,'0');
+    }
+  }
+
+  const row={id,start:data?.start||defaultStart,end:data?.end||'',duty:data?.duty||'',assigned:data?.assigned||[]};
   if(!data){snapshot();dutyRows.push(row);save();}
   renderDutyRow(row);
   updateDutyEmpty();
