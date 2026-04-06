@@ -2036,19 +2036,7 @@ function renderDutyRow(row) {
     }
     e.target.dataset.prev=newVal;
   };
-  // 시작시간 스피너 버튼
-  const startWrap=document.createElement('div'); startWrap.className='time-spin-wrap';
-  startWrap.appendChild(inpStart);
-  const startBtns=document.createElement('div'); startBtns.className='time-spin-btns';
-  const startUp=document.createElement('button'); startUp.className='time-spin-btn';
-  startUp.innerHTML='▲'; startUp.title='Shift+↑ : +5분';
-  startUp.onmousedown=e=>{e.preventDefault();inpStart.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',shiftKey:true,bubbles:true}));};
-  const startDn=document.createElement('button'); startDn.className='time-spin-btn';
-  startDn.innerHTML='▼'; startDn.title='Shift+↓ : -5분';
-  startDn.onmousedown=e=>{e.preventDefault();inpStart.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',shiftKey:true,bubbles:true}));};
-  startBtns.appendChild(startUp); startBtns.appendChild(startDn);
-  startWrap.appendChild(startBtns);
-  tdStart.appendChild(startWrap); tr.appendChild(tdStart);
+  tdStart.appendChild(inpStart); tr.appendChild(tdStart);
 
   const tdEnd=document.createElement('td'); tdEnd.style.textAlign='center';
   const inpEnd=document.createElement('input');
@@ -2092,19 +2080,7 @@ function renderDutyRow(row) {
       }
     }
   };
-  // 종료시간 스피너 버튼
-  const endWrap=document.createElement('div'); endWrap.className='time-spin-wrap';
-  endWrap.appendChild(inpEnd);
-  const endBtns=document.createElement('div'); endBtns.className='time-spin-btns';
-  const endUp=document.createElement('button'); endUp.className='time-spin-btn';
-  endUp.innerHTML='▲'; endUp.title='Shift+↑ : +5분';
-  endUp.onmousedown=e=>{e.preventDefault();inpEnd.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',shiftKey:true,bubbles:true}));};
-  const endDn=document.createElement('button'); endDn.className='time-spin-btn';
-  endDn.innerHTML='▼'; endDn.title='Shift+↓ : -5분';
-  endDn.onmousedown=e=>{e.preventDefault();inpEnd.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',shiftKey:true,bubbles:true}));};
-  endBtns.appendChild(endUp); endBtns.appendChild(endDn);
-  endWrap.appendChild(endBtns);
-  tdEnd.appendChild(endWrap); tr.appendChild(tdEnd);
+  tdEnd.appendChild(inpEnd); tr.appendChild(tdEnd);
 
   // 소요시간 (분)
   const tdDur=document.createElement('td'); tdDur.style.cssText='text-align:center';
@@ -2145,20 +2121,7 @@ function renderDutyRow(row) {
       }
     }
   });
-  // 커스텀 스피너 버튼 (시작/종료시간과 동일한 UI)
-  const durWrap=document.createElement('div'); durWrap.className='time-spin-wrap';
-  durWrap.style.justifyContent='center';
-  durWrap.appendChild(inpDur);
-  const durBtns=document.createElement('div'); durBtns.className='time-spin-btns';
-  const durUp=document.createElement('button'); durUp.className='time-spin-btn';
-  durUp.innerHTML='▲'; durUp.title='Shift+↑ : +5분';
-  durUp.onmousedown=e=>{e.preventDefault();inpDur.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',shiftKey:true,bubbles:true}));};
-  const durDn=document.createElement('button'); durDn.className='time-spin-btn';
-  durDn.innerHTML='▼'; durDn.title='Shift+↓ : -5분';
-  durDn.onmousedown=e=>{e.preventDefault();inpDur.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',shiftKey:true,bubbles:true}));};
-  durBtns.appendChild(durUp); durBtns.appendChild(durDn);
-  durWrap.appendChild(durBtns);
-  tdDur.appendChild(durWrap); tr.appendChild(tdDur);
+  tdDur.appendChild(inpDur); tr.appendChild(tdDur);
 
   // duty input
   const tdD=document.createElement('td');
