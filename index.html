@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -29,7 +30,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .page.active{display:flex;overflow-y:auto}
 
 /* TOOLBAR */
-.toolbar{padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border2);flex-wrap:wrap;flex-shrink:0;position:sticky;top:0;z-index:50;background:var(--bg);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.toolbar{padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border2);flex-wrap:wrap;flex-shrink:0;position:sticky;top:var(--toolbar-top,0);z-index:50;background:var(--bg);box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .toolbar-title{font-size:14px;font-weight:600;flex:1}
 
 /* BUTTONS */
@@ -147,6 +148,16 @@ tr.flash-copied{animation:flash-copied .55s ease-out}
 
 /* ── OVERVIEW ── */
 .overview-panel{padding:14px 24px 10px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.overview-panel.pinned{position:sticky;top:0;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.ov-pin-btn{
+  width:26px;height:26px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--text-dim);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:all .15s;flex-shrink:0;margin-left:4px;
+  line-height:1;
+}
+.ov-pin-btn:hover{border-color:var(--orange);color:var(--orange)}
+.ov-pin-btn.active{background:rgba(227,179,65,.12);border-color:var(--orange);color:var(--orange)}
 .overview-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .overview-hdr-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
 .ov-legend{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
@@ -888,8 +899,9 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
 <div class="page active" id="page0">
 
   <!-- ① 24H OVERVIEW -->
-  <div class="overview-panel">
+  <div class="overview-panel" id="overviewPanel">
     <div class="overview-hdr">
+      <button class="ov-pin-btn" id="ovPinBtn" onclick="toggleOverviewPin()" title="Overview 상단 고정">📌</button>
       <span class="overview-hdr-title">24시간 배치 현황 Overview</span>
       <span class="ov-date-badge" id="ovDateBadge"></span>
       <div class="ov-legend" id="ovLegend"></div>
@@ -1788,6 +1800,31 @@ const ALL_COLOR = { bg:'rgba(255,255,255,.12)', b:'rgba(255,255,255,.85)', t:'#f
 // ══════════════════════════════════════════
 // OVERVIEW
 // ══════════════════════════════════════════
+// ── OVERVIEW PIN ──
+let overviewPinned = localStorage.getItem('overviewPinned') === 'true';
+function toggleOverviewPin() {
+  overviewPinned = !overviewPinned;
+  localStorage.setItem('overviewPinned', overviewPinned);
+  applyOverviewPin();
+}
+function applyOverviewPin() {
+  const panel   = document.getElementById('overviewPanel');
+  const btn     = document.getElementById('ovPinBtn');
+  const toolbar = document.querySelector('#page0 .toolbar');
+  if (!panel || !btn) return;
+  panel.classList.toggle('pinned', overviewPinned);
+  btn.classList.toggle('active', overviewPinned);
+  btn.title = overviewPinned ? 'Overview 고정 해제' : 'Overview 상단 고정';
+  // toolbar-top: 고정 시 overview 높이만큼, 아닐 때 0
+  const ovH = overviewPinned ? panel.offsetHeight : 0;
+  document.documentElement.style.setProperty('--toolbar-top', ovH + 'px');
+  // thead-top도 갱신 (toolbar 높이 포함)
+  if (toolbar) {
+    const toolbarH = toolbar.offsetHeight;
+    document.documentElement.style.setProperty('--thead-top', (ovH + toolbarH) + 'px');
+  }
+}
+
 function renderOverview() {
   resetColors();
   const track=document.getElementById('ovTrack');
@@ -3521,16 +3558,20 @@ function sortAssigned(arr) {
   applyGridLines();
   updateUndoBtn();
   refreshAlertPanel();
-  // thead sticky top = toolbar 높이 기준 (bulk toolbar는 하단 fixed라 영향 없음)
+  applyOverviewPin();
+  // thead/toolbar sticky top 동적 계산
   (function setStickyOffsets() {
-    const toolbar = document.querySelector('#page0 .toolbar');
-    const bulk    = document.getElementById('bulkToolbar');
+    const toolbar   = document.querySelector('#page0 .toolbar');
+    const bulk      = document.getElementById('bulkToolbar');
     const tableWrap = document.querySelector('#page0 .table-wrap');
+    const panel     = document.getElementById('overviewPanel');
     if (!toolbar) return;
 
     const update = () => {
+      const ovH      = (overviewPinned && panel) ? panel.offsetHeight : 0;
       const toolbarH = toolbar.offsetHeight;
-      document.documentElement.style.setProperty('--thead-top', toolbarH + 'px');
+      document.documentElement.style.setProperty('--toolbar-top', ovH + 'px');
+      document.documentElement.style.setProperty('--thead-top', (ovH + toolbarH) + 'px');
       // bulk toolbar 표시 중이면 table-wrap 하단에 여백 추가
       if (tableWrap && bulk) {
         tableWrap.style.paddingBottom = bulk.classList.contains('visible')
@@ -3541,10 +3582,13 @@ function sortAssigned(arr) {
 
     update();
     new ResizeObserver(update).observe(toolbar);
+    if (panel) new ResizeObserver(update).observe(panel);
     if (bulk) {
       new ResizeObserver(update).observe(bulk);
       new MutationObserver(update).observe(bulk, { attributes: true, attributeFilter: ['class'] });
     }
+    // overview pin 상태 변화 감지
+    if (panel) new MutationObserver(update).observe(panel, { attributes: true, attributeFilter: ['class'] });
   })();
 })();
 </script>
