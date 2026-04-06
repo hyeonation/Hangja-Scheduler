@@ -2460,9 +2460,16 @@ function updateDutyEmpty(){
 }
 
 function formatTime(input){
-  let v=input.value.replace(/\D/g,'');
+  const pos = input.selectionStart;
+  const prev = input.value;
+  let v = prev.replace(/\D/g,'');
   if(v.length>=3) v=v.slice(0,2)+':'+v.slice(2,4);
-  input.value=v;
+  if(v === prev) return; // 값이 안 바뀌면 커서 건드리지 않음
+  input.value = v;
+  // 콜론 삽입으로 인한 커서 위치 보정
+  const colonAdded = v.includes(':') && !prev.includes(':');
+  const newPos = colonAdded ? pos + 1 : pos;
+  input.setSelectionRange(newPos, newPos);
 }
 
 function refreshAllChips(){
