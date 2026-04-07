@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -3528,8 +3527,38 @@ function updateClock() {
   document.getElementById('clockH').textContent = h;
   document.getElementById('clockM').textContent = m;
 }
+
+// ── LIVE NOW-LINE (1분마다 overview 빨간선 위치 업데이트) ──
+function updateNowLine() {
+  if (currentDate !== todayStr()) return;
+  const nm = nowMin();
+  const track = document.getElementById('ovTrack');
+  if (!track) return;
+  let nl = track.querySelector('.ov-now');
+  const inView = nm >= viewMin(ovStartH) && nm <= viewMax(ovEndH);
+  if (!inView) { if (nl) nl.remove(); return; }
+  if (!nl) { nl = document.createElement('div'); nl.className = 'ov-now'; track.appendChild(nl); }
+  nl.style.left = minToViewPct(nm, ovStartH, ovEndH) + '%';
+
+  // gantt now-line도 함께 업데이트
+  document.querySelectorAll('.gantt-timeline .now-line').forEach(el => {
+    el.style.left = minToViewPct(nm, ganttStartH, ganttEndH) + '%';
+  });
+}
+
+// 매분 정각에 맞춰 실행 후 60초마다 반복
+function scheduleNowLine() {
+  updateNowLine();
+  const msToNextMin = (60 - new Date().getSeconds()) * 1000;
+  setTimeout(() => {
+    updateNowLine();
+    setInterval(updateNowLine, 60000);
+  }, msToNextMin);
+}
+
 updateClock();
 setInterval(updateClock, 1000);
+scheduleNowLine();
 
 
 // assigned 배열을 personnel 등록 순서로 정렬
