@@ -978,7 +978,7 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
   <div class="table-wrap">
     <table id="dutyTable" style="display:none">
       <thead><tr>
-        <th class="th-cb"><input type="checkbox" class="row-select-cb" id="selectAllCb" title="전체 선택" onchange="toggleSelectAll(this.checked)"></th>
+        <th class="th-cb"><input type="checkbox" class="row-select-cb" id="selectAllCb" title="전체 선택" onchange="toggleSelectAll(this)" onmousedown="this._wasIndeterminate = this.indeterminate"></th>
         <th style="width:28px"></th>
         <th style="width:36px;text-align:right">#</th>
         <th style="width:100px;text-align:center">시작 시간</th>
@@ -1376,14 +1376,34 @@ function onRowSelectChange(rowId, checked) {
   updateSelectAllCb();
 }
 
-function toggleSelectAll(checked) {
-  dutyRows.forEach(r => {
-    if (checked) selectedIds.add(r.id);
-    else selectedIds.delete(r.id);
-  });
-  // update all row checkboxes
-  document.querySelectorAll('#dutyBody .row-select-cb').forEach(cb => cb.checked = checked);
-  document.querySelectorAll('#dutyBody tr').forEach(tr => tr.classList.toggle('selected-row', checked));
+function toggleSelectAll(cb) {
+  const checked = cb.checked;
+  const wasIndeterminate = cb._wasIndeterminate;
+  if (wasIndeterminate) {
+    // indeterminate 상태에서 클릭: 전체 해제
+    selectedIds.clear();
+    cb.checked = false;
+    cb.indeterminate = false;
+    // 행 체크박스 해제
+    document.querySelectorAll('#dutyBody .row-select-cb').forEach(rowCb => rowCb.checked = false);
+    document.querySelectorAll('#dutyBody tr').forEach(tr => tr.classList.remove('selected-row'));
+  } else if (checked) {
+    // 체크되지 않은 상태에서 클릭: 전체 선택
+    dutyRows.forEach(r => selectedIds.add(r.id));
+    cb.checked = true;
+    cb.indeterminate = false;
+    // 행 체크박스 선택
+    document.querySelectorAll('#dutyBody .row-select-cb').forEach(rowCb => rowCb.checked = true);
+    document.querySelectorAll('#dutyBody tr').forEach(tr => tr.classList.add('selected-row'));
+  } else {
+    // 체크된 상태에서 클릭: 전체 해제
+    selectedIds.clear();
+    cb.checked = false;
+    cb.indeterminate = false;
+    // 행 체크박스 해제
+    document.querySelectorAll('#dutyBody .row-select-cb').forEach(rowCb => rowCb.checked = false);
+    document.querySelectorAll('#dutyBody tr').forEach(tr => tr.classList.remove('selected-row'));
+  }
   updateBulkToolbar();
 }
 
