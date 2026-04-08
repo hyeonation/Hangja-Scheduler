@@ -859,7 +859,7 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
 <div class="date-bar">
   <span class="live-clock"><span class="live-clock-label">현재시간</span><span class="live-clock-time" id="liveClock"><span id="clockH">00</span><span class="live-clock-colon">:</span><span id="clockM">00</span></span></span>
   <button class="date-nav-btn" onclick="changeDate(-1)" title="이전 날짜">&#8249;</button>
-  <button class="date-display" onclick="openDatePicker()" title="날짜 선택">
+  <button class="date-display" onclick="openDatePickerModal()" title="날짜 선택">
     <span class="date-display-text" id="dateDisplayText">—</span>
     <span class="date-display-day"  id="dateDisplayDay">—</span>
   </button>
@@ -1110,6 +1110,27 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
       <button class="copy-confirm-btn" id="copyConfirmBtn" onclick="executeCopy()" disabled>
         복사하기
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 날짜 선택 달력 모달 ── -->
+<div class="copy-modal-overlay" id="datePickerOverlay" onclick="closeDatePicker(event)">
+  <div class="copy-modal">
+    <div class="copy-modal-header">
+      <span style="font-size:18px">📅</span>
+      <span class="copy-modal-title">날짜 선택</span>
+      <button class="copy-modal-close" onclick="closeDatePicker()">✕</button>
+    </div>
+    <div class="copy-modal-body">
+      <div class="cal-wrap" id="datePickerCalWrap">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="datePickerNav(-1)">&#8249;</button>
+          <span class="cal-month-label" id="datePickerMonthLabel"></span>
+          <button class="cal-nav" onclick="datePickerNav(+1)">&#8250;</button>
+        </div>
+        <div class="cal-grid" id="datePickerGrid"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1727,6 +1748,88 @@ function changeDate(delta) {
 }
 
 function goToday() { switchDate(todayStr()); }
+
+// ── DATE PICKER MODAL ──
+let dpYear, dpMonth;
+
+function openDatePickerModal() {
+  const base = parseDate(currentDate);
+  dpYear  = base.getFullYear();
+  dpMonth = base.getMonth();
+  renderDatePickerCalendar();
+  document.getElementById('datePickerOverlay').classList.add('open');
+}
+
+function closeDatePicker(e) {
+  if (!e || e.target === document.getElementById('datePickerOverlay')) {
+    document.getElementById('datePickerOverlay').classList.remove('open');
+  }
+}
+
+function datePickerNav(delta) {
+  dpMonth += delta;
+  if (dpMonth < 0)  { dpMonth = 11; dpYear--; }
+  if (dpMonth > 11) { dpMonth = 0;  dpYear++; }
+  renderDatePickerCalendar();
+}
+
+function renderDatePickerCalendar() {
+  const KO_DOW = ['일','월','화','수','목','금','토'];
+  const today  = todayStr();
+  const label  = document.getElementById('datePickerMonthLabel');
+  const grid   = document.getElementById('datePickerGrid');
+  label.textContent = `${dpYear}년 ${dpMonth + 1}월`;
+  grid.innerHTML = '';
+
+  // 요일 헤더
+  KO_DOW.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow' + (i===0?' sun':i===6?' sat':'');
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(dpYear, dpMonth, 1).getDay();
+  const lastDate = new Date(dpYear, dpMonth + 1, 0).getDate();
+
+  // 앞 빈칸
+  const prevLast = new Date(dpYear, dpMonth, 0).getDate();
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty other-month';
+    el.textContent = prevLast - firstDay + 1 + i;
+    grid.appendChild(el);
+  }
+
+  // 날짜
+  for (let d = 1; d <= lastDate; d++) {
+    const dateStr = dpYear+'-'+String(dpMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dow = new Date(dpYear, dpMonth, d).getDay();
+    const el = document.createElement('div');
+    let cls = 'cal-day';
+    if (dow === 0) cls += ' sun';
+    if (dow === 6) cls += ' sat';
+    if (dateStr === today)       cls += ' today';
+    if (dateStr === currentDate) cls += ' selected';
+    el.className = cls;
+    el.textContent = d;
+    el.onclick = () => {
+      switchDate(dateStr);
+      closeDatePicker();
+    };
+    grid.appendChild(el);
+  }
+
+  // 뒤 빈칸
+  const filled = firstDay + lastDate;
+  const remainder = filled % 7 === 0 ? 0 : 7 - (filled % 7);
+  for (let i = 1; i <= remainder; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty other-month';
+    el.textContent = i;
+    grid.appendChild(el);
+  }
+}
 
 function openDatePicker() {
   const inp = document.getElementById('dateNative');
