@@ -24,18 +24,7 @@ function saveTimeRange() {
 }
 
 // ── 뷰 범위 → 분(minutes) 변환 헬퍼 ──
-// startH 시(時)를 분(分)으로 변환
-function viewMin(startH) { return startH * 60; }
-// endH 시(時)를 분(分)으로 변환
-function viewMax(endH)   { return endH   * 60; }
-
-// 특정 분(m)이 뷰 범위 안에서 몇 %(left)에 해당하는지 계산
-// 범위를 벗어나면 0–100 사이로 클램프(clamp)한다.
-function minToViewPct(m, startH, endH) {
-  const vMin = viewMin(startH), vMax = viewMax(endH), span = vMax - vMin;
-  if (span <= 0) return 0;
-  return Math.max(0, Math.min(100, (m - vMin) / span * 100));
-}
+// Imported from timeUtils.js
 
 // 표시 범위 셀렉트 변경 핸들러 — overview·gantt 동시 갱신
 function onViewRangeChange() {
@@ -83,10 +72,7 @@ function syncGanttSelects() { syncViewSelects(); } // alias
 
 // ── 날짜별 데이터 키 ──
 // 소임 데이터는 날짜별로 저장된다: 'dutyRows_YYYY-MM-DD'
-function todayStr() {
-  const d = new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
+// todayStr() is provided by timeUtils.js
 // 현재 보고 있는 날짜 (앱 시작 시 마지막으로 열었던 날짜 복원, 없으면 오늘)
 let currentDate = localStorage.getItem('currentDate') || todayStr();
 // 현재 날짜의 소임 목록: { id, start, end, duty, assigned[] }
@@ -538,31 +524,6 @@ function resetColors() { Object.keys(colorMap).forEach(k => delete colorMap[k]);
 
 // 분(分) 값을 'HH:MM' 형식 문자열로 변환
 // 음수나 MINS_IN_DAY 이상의 값도 자동으로 wrap 처리한다.
-function minToStr(m) {
-  const wrapped = ((m % MINS_IN_DAY) + MINS_IN_DAY) % MINS_IN_DAY;
-  return String(Math.floor(wrapped / 60)).padStart(2,'0') + ':' + String(wrapped % 60).padStart(2,'0');
-}
-
-// 'HH:MM' 문자열을 분(分) 숫자로 파싱. 유효하지 않으면 null 반환.
-function parseMin(t) {
-  if (!t) return null;
-  const [h, m] = t.split(':').map(Number);
-  if (isNaN(h) || isNaN(m)) return null;
-  return h * 60 + m;
-}
-
-// 시작(s)·종료(e) 분 값을 받아 [시작, 종료] 세그먼트 배열을 반환.
-// 자정을 넘기는 경우(e < s) 두 개의 세그먼트로 분리한다.
-// 예: segs(1380, 60) → [[1380,1440],[0,60]]
-function segs(s, e) {
-  if (s === null || e === null) return [];
-  if (e > s)  return [[s, e]];
-  if (e < s)  return [[s, MINS_IN_DAY], [0, e]]; // 자정 넘김
-  return []; // s === e: 길이 0 → 표시 안 함
-}
-
-// 현재 시각을 분(分)으로 반환
-function nowMin() { const n = new Date(); return n.getHours()*60 + n.getMinutes(); }
 
 // ══════════════════════════════════════════
 // DATE BAR  — 상단 날짜 표시줄
@@ -576,16 +537,6 @@ const DAY_COLORS = {
 };
 
 // 'YYYY-MM-DD' 문자열을 Date 객체로 변환 (로컬 타임존 기준, timezone 오차 없음)
-function parseDate(str) {
-  const [y, m, d] = str.split('-').map(Number);
-  return new Date(y, m-1, d);
-}
-
-// 'YYYY-MM-DD' → 'YYYY년 M월 D일' 형식으로 변환
-function formatDateDisplay(str) {
-  const d = parseDate(str);
-  return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일';
-}
 
 // 날짜 표시줄 전체를 현재 날짜에 맞게 갱신 (날짜 텍스트, 요일 뱃지, 오늘 버튼)
 function renderDateBar() {
@@ -1525,21 +1476,6 @@ function updateDutyEmpty(){
   document.getElementById('dutyTable').style.display=has?'table':'none';
 }
 
-// 시간 입력 필드 자동 포맷 핸들러
-// 숫자만 남기고, 3자리 이상이면 자동으로 콜론(:)을 삽입한다.
-// 커서 위치를 보존해 입력 중 커서가 튀는 현상을 방지한다.
-function formatTime(input){
-  const pos = input.selectionStart;
-  const prev = input.value;
-  let v = prev.replace(/\D/g,'');
-  if(v.length>=3) v=v.slice(0,2)+':'+v.slice(2,4);
-  if(v === prev) return; // 값이 안 바뀌면 커서 건드리지 않음
-  input.value = v;
-  // 콜론 삽입으로 인한 커서 위치 보정
-  const colonAdded = v.includes(':') && !prev.includes(':');
-  const newPos = colonAdded ? pos + 1 : pos;
-  input.setSelectionRange(newPos, newPos);
-}
 
 // 인원 목록이 변경된 후(인원 추가/삭제/편집) 모든 소임 행의 칩을 동기화한다.
 // 더 이상 존재하지 않는 인원은 assigned에서 제거한다.
