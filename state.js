@@ -216,7 +216,9 @@ function onRowSelectChange(rowId, checked) {
 }
 
 // 헤더 체크박스로 전체 선택/해제
-function toggleSelectAll(checked) {
+function toggleSelectAll(cb) {
+  const checked = cb._wasIndeterminate ? false : cb.checked;  // indeterminate 상태에서 클릭하면 전체 선택이 아니라 전체 해제가 되도록
+  cb.checked = cb._wasIndeterminate ? false : cb.checked;     // 체크박스 상태 복원 (toggleSelectAll이 호출된 시점에서는 아직 checked가 변경되지 않았기 때문)
   dutyRows.forEach(r => {
     if (checked) selectedIds.add(r.id);
     else         selectedIds.delete(r.id);
