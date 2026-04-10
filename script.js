@@ -492,7 +492,7 @@ function renderDutyRow(row) {
         const curRow = dutyRows.find(r => r.id==row.id); if (!curRow) return;
         const s = parseMin(curRow.start), en = parseMin(curRow.end);
         if (s === null) return;
-        const delta = e.key==='ArrowUp' ? -5 : 5;
+        const delta = e.key==='ArrowUp' ? 5 : -5;
         const newS  = ((s+delta)%MINS_IN_DAY+MINS_IN_DAY)%MINS_IN_DAY;
         const toStr = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
         curRow.start = toStr(newS);
@@ -569,7 +569,7 @@ function renderDutyRow(row) {
         // Shift+방향키: 종료시간만 ±5분 (시작시간 고정, 소요시간 연동 갱신)
         const curRow = dutyRows.find(r => r.id==row.id); if (!curRow) return;
         const en = parseMin(curRow.end); if (en === null) return;
-        const delta = e.key==='ArrowUp' ? -5 : 5;
+        const delta = e.key==='ArrowUp' ? 5 : -5;
         const newE  = ((en+delta)%MINS_IN_DAY+MINS_IN_DAY)%MINS_IN_DAY;
         const toStr = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
         curRow.end = toStr(newE);
