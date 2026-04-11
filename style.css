@@ -335,6 +335,10 @@ tr.flash-copied{animation:flash-copied .55s ease-out}
 .alert-panel.collapsed{
   transform:translateX(100%);
 }
+.alert-panel.tab-hidden,
+.alert-panel-toggle.tab-hidden{
+  display:none !important;
+}
 /* 토글 버튼: 우하단 FAB, 패널과 독립 */
 /* ── FAB 애니메이션 ── */
 @keyframes fab-pulse{

@@ -208,6 +208,7 @@ function switchDate(newDate) {
 function switchTab(i) {
   document.querySelectorAll('.tab').forEach((t,j)  => t.classList.toggle('active', i===j));
   document.querySelectorAll('.page').forEach((p,j) => p.classList.toggle('active', i===j));
+  setAlertPanelVisibilityByTab(i);
   if (i===0) renderOverview(); // 소임 탭으로 돌아올 때 overview 갱신
   if (i===1) refreshGantt();   // gantt 탭 진입 시 갱신
 }
@@ -1365,6 +1366,7 @@ function renderPositionButtons(){
   positions.forEach(pos=>{
     const btn=document.createElement('button');
     btn.className='tag-btn'+(selectedPos===pos?' sel':'');
+    btn.dataset.pos=pos;
     btn.textContent=pos;
     btn.onclick=()=>togglePos(btn,pos);
     pg.appendChild(btn);
@@ -1418,8 +1420,8 @@ function addPersonnel(){
   const p={id:Date.now(),name,position:selectedPos,note:noteEl.value.trim()};
   personnel.push(p); save();
   nameEl.value=''; noteEl.value='';
-  selectedPos='행자';
-  document.querySelectorAll('#posGroup .tag-btn').forEach(b=>b.classList.toggle('sel', b.dataset.pos==='행자'));
+  selectedPos = positions[0] || '';
+  renderPositionButtons();
   renderPersonnelList(); refreshAllChips(); renderOverview();
   toast(`✓ ${p.position?p.position+' ':''}${p.name} 등록 완료`);
 }
@@ -1717,6 +1719,25 @@ function toggleAlertPanel() {
     fab.title = alertPanelOpen ? '특이사항 패널 닫기' : '특이사항 패널 열기';
     const icon = document.getElementById('alertFabIcon');
     if (icon) icon.textContent = alertPanelOpen ? '✕' : '⚠';
+  }
+}
+
+// 현재 탭에 따라 특이사항 FAB/패널 표시 여부를 제어한다.
+// 인원 등록 탭(page2)에서는 우측 삭제 버튼과 겹치지 않도록 숨긴다.
+function setAlertPanelVisibilityByTab(tabIndex) {
+  const fab = document.getElementById('alertFab');
+  const panel = document.getElementById('alertPanel');
+  if (!fab || !panel) return;
+
+  // 인원 탭에서는 FAB과 패널 모두 숨김, 그 외 탭에서는 표시
+  // tabIndex === 2 는 인원 등록 탭을 의미 (0: 배치표, 1: 소임 등록, 2: 인원 등록)
+  const hideOnPersonnelTab = tabIndex === 2;
+  fab.classList.toggle('tab-hidden', hideOnPersonnelTab);
+  panel.classList.toggle('tab-hidden', hideOnPersonnelTab);
+
+  // 숨김 해제 시에는 사용자가 마지막으로 선택한 열림/닫힘 상태를 복원한다.
+  if (!hideOnPersonnelTab) {
+    panel.classList.toggle('collapsed', !alertPanelOpen);
   }
 }
 
@@ -2140,6 +2161,7 @@ function sortAssigned(arr) {
   applyGridLines();
   updateUndoBtn();
   refreshAlertPanel();
+  setAlertPanelVisibilityByTab(0);
   applyOverviewPin();
   // ── Sticky 오프셋 동적 계산 ──
   // overview 고정 여부·toolbar 높이·bulk toolbar 표시 여부에 따라

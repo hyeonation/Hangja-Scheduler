@@ -7,7 +7,7 @@ let personnel = JSON.parse(localStorage.getItem('personnel') || '[]');
 // 직책 목록 (직책 관리 탭에서 편집)
 let positions = JSON.parse(localStorage.getItem('positions') || '["행자","스탭","바라지"]');
 // 인원 등록 폼에서 현재 선택된 직책
-let selectedPos = positions[0] || '';
+let selectedPos = positions[0] || ''; // 기본값: 직책 목록 첫 번째, 없으면 빈 값
 
 // ── 표시 시간 범위 (시 단위, 0–24) ──
 // overview·gantt가 동일한 범위를 공유한다.
