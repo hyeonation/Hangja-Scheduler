@@ -762,6 +762,7 @@ function renderChips(container, row, pill) {
   // 이 행보다 앞에서 이미 중복 시간대에 배치된 인원 계산
   const conflicted = getConflictNames(row);
 
+  const modeSelected = (typeof personnelViewMode !== 'undefined' && personnelViewMode === 'selected');
   const allChip=document.createElement('span'); allChip.className='chip-all';
   // 전체선택은 충돌 없는 인원 기준으로만 체크 여부 판단
   const availablePersonnel = personnel.filter(p => !conflicted.has(p.name));
@@ -769,15 +770,18 @@ function renderChips(container, row, pill) {
   if(isAll) allChip.classList.add('all-checked');
   allChip.innerHTML=`<span class="chip-dot"></span> 전체선택`;
   allChip.onclick=()=>toggleAllChips(row.id, allChip, conflicted);
-  area.appendChild(allChip);
+  // in 'selected' mode we hide unchecked personnel; skip adding the "전체선택" button
+  if (!modeSelected) area.appendChild(allChip);
 
-  if(personnel.length>0){
+  if(!modeSelected && personnel.length>0){
     const sep=document.createElement('span');
     sep.style.cssText='width:1px;height:20px;background:var(--border);margin:0 2px';
     area.appendChild(sep);
   }
 
   personnel.forEach(p=>{
+    // if we're in 'selected' mode and this person is not assigned to the row, skip rendering
+    if (modeSelected && !row.assigned.includes(p.name)) return;
     const isConflict = conflicted.has(p.name);
     const lbl=document.createElement('label');
     let cls = 'chip-label';
@@ -1932,25 +1936,52 @@ function getAllConflicts() {
 
 
 // ── PERSONNEL VISIBILITY ──
-let personnelHidden = false;
+// personnel view modes: 'all' | 'hidden' | 'selected'
+// Always default to 'all' on load and do not reuse any previous value.
+let personnelViewMode = 'all';
+localStorage.setItem('personnelViewMode', personnelViewMode);
 
-// 인원 이름 표시 방식을 순환 토글: 표시 → 블러(hover시 보임) → 숨김 → 표시
-function togglePersonnelView() {
-  personnelHidden = !personnelHidden;
+function applyPersonnelViewMode() {
   const table = document.getElementById('dutyTable');
-  const btn   = document.getElementById('togglePersonnelBtn');
-  const svgPath = '<circle cx="7" cy="6" r="3"/><path d="M1 6s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z"/>';
-  const svgPathHidden = '<path d="M1 1l12 12M5.5 5.5A3 3 0 0 0 9 9M2.5 3.5C1.5 4.5 1 6 1 6s2 4 6 4c.9 0 1.7-.2 2.4-.5M6 2.1C6.3 2 6.7 2 7 2c4 0 6 4 6 4s-.5 1.3-1.5 2.4"/>';
+  table.classList.toggle('hide-personnel', personnelViewMode === 'hidden');
+  table.classList.toggle('show-selected-only', personnelViewMode === 'selected');
+  updatePersonnelBtn();
+  // re-render chips so JS-driven '선택 인원만' filtering takes effect immediately
+  try { refreshAllChips(); } catch (e) { /* safe fallback if functions not ready */ }
+}
 
-  if (personnelHidden) {
-    table.classList.add('hide-personnel');
+function updatePersonnelBtn() {
+  const btn = document.getElementById('togglePersonnelBtn');
+  const svgPathOpenedEye = '<circle cx="7" cy="6" r="3"/><path d="M1 6s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z"/>';
+  const svgPathClosedEye = '<path d="M1 1l12 12M5.5 5.5A3 3 0 0 0 9 9M2.5 3.5C1.5 4.5 1 6 1 6s2 4 6 4c.9 0 1.7-.2 2.4-.5M6 2.1C6.3 2 6.7 2 7 2c4 0 6 4 6 4s-.5 1.3-1.5 2.4"/>';
+  if (!btn) return;
+  btn.classList.remove('active');
+  // show exact mode name as label
+  if (personnelViewMode === 'all') {
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">${svgPathOpenedEye}</svg> 인원 보이기`;
+  } else if (personnelViewMode === 'hidden') {
     btn.classList.add('active');
-    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">${svgPathHidden}</svg> 인원 보이기`;
-  } else {
-    table.classList.remove('hide-personnel');
-    btn.classList.remove('active');
-    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">${svgPath}</svg> 인원 감추기`;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">${svgPathClosedEye}</svg> 인원 감추기`;
+  } else if (personnelViewMode === 'selected') {
+    btn.classList.add('active');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">${svgPathOpenedEye}</svg> 선택 인원만`;
   }
+}
+
+// cycle modes: all -> selected -> hidden -> all
+function togglePersonnelView() {
+  if (personnelViewMode === 'all') personnelViewMode = 'selected';
+  else if (personnelViewMode === 'selected') personnelViewMode = 'hidden';
+  else personnelViewMode = 'all';
+  localStorage.setItem('personnelViewMode', personnelViewMode);
+  applyPersonnelViewMode();
+}
+
+// initialize on load (call immediately if DOM already ready)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyPersonnelViewMode);
+} else {
+  applyPersonnelViewMode();
 }
 
 

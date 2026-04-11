@@ -572,6 +572,8 @@ tbody tr.selected-row{
 .hide-personnel .count-cell {
   /* count column stays visible */
 }
+/* show only selected rows' personnel: hide all chip cells except for selected rows */
+/* legacy: .show-selected-only no longer hides by CSS; logic handled in JS */
 /* blur mode — column stays but names are blurred */
 .blur-personnel .chip-area {
   filter: blur(5px);
