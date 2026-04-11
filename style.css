@@ -564,10 +564,13 @@ tbody tr.selected-row{
   font-size:15px; font-weight:600; color:var(--accent); white-space:nowrap;
 }
 .bulk-sep{ width:1px; height:28px; background:var(--border); flex-shrink:0; }
-.bulk-delta-wrap{
-  display:flex; align-items:center; gap:8px;
+.bulk-wrap{
+  display:flex;flex-direction:column;gap:6px;align-items:center
 }
-.bulk-delta-label{ font-size:13px; color:var(--text-muted); white-space:nowrap; }
+.bulk-wrap-small{
+  display:flex;gap:6px;align-items:center
+}
+.bulk-delta-label{ font-size:14px; color:var(--text-muted); white-space:nowrap; }
 .bulk-delta-input{
   width:80px; height:36px; padding:0 10px;
   background:var(--bg); border:1px solid var(--border);

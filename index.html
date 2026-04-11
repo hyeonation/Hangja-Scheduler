@@ -99,40 +99,55 @@
   <div class="bulk-toolbar" id="bulkToolbar">
     <span class="bulk-label" id="bulkLabel">0행 선택됨</span>
     <div class="bulk-sep"></div>
-    <div class="bulk-delta-wrap">
+    <div class="bulk-wrap">
+      <span class="bulk-delta-label">행 이동</span>
+      <div class="bulk-wrap-small">
+        <button class="bulk-apply-btn" title="선택 행 위로 한 칸" onclick="moveSelectedUp()">▲</button>
+        <button class="bulk-apply-btn" title="선택 행 아래로 한 칸" onclick="moveSelectedDown()">▼</button>
+      </div>
+    </div>
+    <div class="bulk-sep"></div>
+    <div class="bulk-wrap">
       <span class="bulk-delta-label">시작시간 변경</span>
-      <input class="bulk-delta-input" id="bulkStartInput" type="text"
-             placeholder="00:00" maxlength="5" style="width:72px"
-             oninput="formatBulkTime(this)"
-             onkeydown="if(event.key==='Enter')applyBulkShift()">
-    </div>
-    <button class="bulk-apply-btn" onclick="applyBulkShift()">▶ 적용</button>
-    <div class="bulk-sep"></div>
-    <div class="nudge-wrap">
-      <span class="nudge-unit-label">시작</span>
-      <span class="nudge-unit-label">±</span>
-      <input class="nudge-unit-input" id="nudgeInput" type="number" value="10" min="1" max="720"
-             title="이동할 분(分)">
-      <span class="nudge-unit-label">분</span>
-      <button class="nudge-btn nudge-btn-minus" onclick="applyNudge(-1)" title="선택 소임 시작시간 빼기">−</button>
-      <button class="nudge-btn nudge-btn-plus"  onclick="applyNudge(+1)" title="선택 소임 시작시간 더하기">＋</button>
+      <div class="bulk-wrap-small">
+        <input class="bulk-delta-input" id="bulkStartInput" type="text"
+              placeholder="00:00" maxlength="5" style="width:72px"
+              oninput="formatBulkTime(this)"
+              onkeydown="if(event.key==='Enter')applyBulkShift()">
+        <button class="bulk-apply-btn" onclick="applyBulkShift()">▶ 적용</button>
+      </div>
     </div>
     <div class="bulk-sep"></div>
-    <div class="nudge-wrap">
-      <span class="nudge-unit-label">소요</span>
-      <span class="nudge-unit-label">±</span>
-      <input class="nudge-unit-input" id="durNudgeInput" type="number" value="5" min="1" max="720"
-             title="소요시간 조정 분(分)">
-      <span class="nudge-unit-label">분</span>
-      <button class="nudge-btn nudge-btn-minus" onclick="applyDurNudge(-1)" title="선택 소임 소요시간 빼기">−</button>
-      <button class="nudge-btn nudge-btn-plus"  onclick="applyDurNudge(+1)" title="선택 소임 소요시간 더하기">＋</button>
+    <div class="bulk-wrap">
+      <span class="bulk-delta-label">시작 ±</span>
+      <div class="bulk-wrap-small">
+        <input class="nudge-unit-input" id="nudgeInput" type="number" value="10" min="1" max="720"
+              title="이동할 분(分)">
+        <span class="bulk-delta-label">분</span>
+        <button class="nudge-btn nudge-btn-minus" onclick="applyNudge(-1)" title="선택 소임 시작시간 빼기">−</button>
+        <button class="nudge-btn nudge-btn-plus"  onclick="applyNudge(+1)" title="선택 소임 시작시간 더하기">＋</button>
+      </div>
     </div>
     <div class="bulk-sep"></div>
-    <button class="bulk-apply-btn" style="background:var(--surface2);border-color:var(--blue);color:var(--blue);" onclick="openCopyModal()">📋 날짜 복사</button>
+    <div class="bulk-wrap">
+      <span class="bulk-delta-label">소요 ±</span>
+      <div class="bulk-wrap-small">
+        <input class="nudge-unit-input" id="durNudgeInput" type="number" value="5" min="1" max="720"
+              title="소요시간 조정 분(分)">
+        <span class="bulk-delta-label">분</span>
+        <button class="nudge-btn nudge-btn-minus" onclick="applyDurNudge(-1)" title="선택 소임 소요시간 빼기">−</button>
+        <button class="nudge-btn nudge-btn-plus"  onclick="applyDurNudge(+1)" title="선택 소임 소요시간 더하기">＋</button>
+      </div>
+    </div>
     <div class="bulk-sep"></div>
-    <button class="bulk-apply-btn" style="background:rgba(248,81,73,.12);border-color:var(--red);color:var(--red);" onclick="bulkDelete()">🗑 선택 삭제</button>
-    <div class="bulk-sep"></div>
-    <button class="bulk-deselect-btn" onclick="clearSelection()">✕ 선택 해제</button>
+    <div class="bulk-wrap">
+      <span class="bulk-delta-label">☆ ✕ ※</span>
+      <div class="bulk-wrap-small">
+        <button class="bulk-apply-btn" style="background:var(--surface2);border-color:var(--blue);color:var(--blue);" onclick="openCopyModal()">📋 선택 복사</button>
+        <button class="bulk-apply-btn" style="background:rgba(248,81,73,.12);border-color:var(--red);color:var(--red);" onclick="bulkDelete()">🗑 선택 삭제</button>
+        <button class="bulk-deselect-btn" onclick="clearSelection()">✕ 선택 해제</button>
+      </div>
+    </div>
   </div>
 
   <!-- ③ TABLE -->

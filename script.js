@@ -1083,6 +1083,126 @@ function dragEnd() {
   });
 }
 
+// Move selected rows together as a single block (preserve relative order).
+function moveSelectedBlock(direction) {
+  if (!selectedIds || selectedIds.size === 0) return;
+  snapshot();
+  const selectedSet = new Set(Array.from(selectedIds));
+  const idxs = dutyRows.map((r,i) => selectedSet.has(r.id) ? i : -1).filter(i=>i!==-1).sort((a,b)=>a-b);
+  if (!idxs.length) return;
+  const firstIdx = idxs[0];
+  const lastIdx  = idxs[idxs.length-1];
+
+  // build block (in original order)
+  const block = idxs.map(i => dutyRows[i]);
+  // remaining rows (remove selected)
+  const remaining = dutyRows.filter(r => !selectedSet.has(r.id));
+
+  const isContiguous = idxs.length === (lastIdx - firstIdx + 1);
+  if (isContiguous) {
+    // Move the whole contiguous block as one unit
+    if (direction < 0) {
+      if (firstIdx === 0) return;
+      const targetOriginal = firstIdx - 1;
+      const removedBefore = idxs.filter(i => i < targetOriginal).length;
+      const insertAt = Math.max(0, targetOriginal - removedBefore);
+      remaining.splice(insertAt, 0, ...block);
+    } else {
+      if (lastIdx === dutyRows.length - 1) return;
+      const targetOriginal = lastIdx + 1;
+      const removedBefore = idxs.filter(i => i < targetOriginal).length;
+      const insertAt = Math.min(remaining.length, targetOriginal - removedBefore + 1);
+      remaining.splice(insertAt, 0, ...block);
+    }
+    dutyRows = remaining;
+  } else {
+    // Non-contiguous: swap eligible selected rows one step on a copy
+    if (direction < 0) {
+      if (firstIdx === 0) return; // can't move
+      const allowed = [];
+      for (const idx of idxs) {
+        if (idx === 0) continue;
+        if (selectedSet.has(dutyRows[idx - 1].id)) continue; // above is selected -> skip
+        allowed.push(idx);
+      }
+      const result = dutyRows.slice();
+      allowed.sort((a,b)=>a-b);
+      for (const i of allowed) {
+        const tmp = result[i - 1]; result[i - 1] = result[i]; result[i] = tmp;
+      }
+      dutyRows = result;
+    } else {
+      if (lastIdx === dutyRows.length - 1) return; // can't move
+      const allowed = [];
+      for (const idx of idxs) {
+        if (idx === dutyRows.length - 1) continue;
+        if (selectedSet.has(dutyRows[idx + 1].id)) continue; // below is selected -> skip
+        allowed.push(idx);
+      }
+      const result = dutyRows.slice();
+      allowed.sort((a,b)=>b-a);
+      for (const i of allowed) {
+        const tmp = result[i + 1]; result[i + 1] = result[i]; result[i] = tmp;
+      }
+      dutyRows = result;
+    }
+  }
+
+  if (direction < 0) {
+    // move up by one: if contiguous block already handled, else swap eligible selected rows up
+    if (firstIdx === 0) return; // can't move
+    // for non-contiguous, allow swaps where the previous row is not selected
+    const allowed = [];
+    for (const idx of idxs) {
+      if (idx === 0) continue;
+      if (selectedSet.has(dutyRows[idx - 1].id)) continue; // above is selected -> skip
+      allowed.push(idx);
+    }
+    // perform swaps on a copy to avoid index-shift issues
+    const result = dutyRows.slice();
+    allowed.sort((a,b)=>a-b);
+    for (const i of allowed) {
+      const tmp = result[i - 1]; result[i - 1] = result[i]; result[i] = tmp;
+    }
+    dutyRows = result;
+  } else {
+    // move down by one: if contiguous block handled above, else swap eligible selected rows down
+    if (lastIdx === dutyRows.length - 1) return; // can't move
+    const allowed = [];
+    for (const idx of idxs) {
+      if (idx === dutyRows.length - 1) continue;
+      if (selectedSet.has(dutyRows[idx + 1].id)) continue; // below is selected -> skip
+      allowed.push(idx);
+    }
+    const result = dutyRows.slice();
+    allowed.sort((a,b)=>b-a);
+    for (const i of allowed) {
+      const tmp = result[i + 1]; result[i + 1] = result[i]; result[i] = tmp;
+    }
+    dutyRows = result;
+  }
+  
+  save();
+  rebuildDutyTable();
+
+  // restore selection UI
+  dutyRows.forEach(r => {
+    if (!selectedSet.has(r.id)) return;
+    const tr = document.querySelector(`#dutyBody tr[data-id="${r.id}"]`);
+    if (tr) {
+      tr.classList.add('selected-row');
+      const cb = tr.querySelector('.row-select-cb'); if (cb) cb.checked = true;
+    }
+  });
+
+  updateBulkToolbar(); updateSelectAllCb();
+  renderOverview(); refreshAllChipsConflicts(); refreshAlertPanel();
+  toast('✓ 선택 행 이동');
+}
+
+function moveSelectedUp() { moveSelectedBlock(-1); }
+function moveSelectedDown() { moveSelectedBlock(+1); }
+
 // 모든 행의 번호(#) 셀을 현재 순서에 맞게 1부터 다시 매긴다.
 function renumberRows(){
   document.querySelectorAll('#dutyBody tr').forEach((tr,i)=>{
