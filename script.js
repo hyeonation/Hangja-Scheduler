@@ -198,6 +198,8 @@ function switchDate(newDate) {
   renderOverview();
   const ganttPage = document.getElementById('page1');
   if (ganttPage.classList.contains('active')) refreshGantt();
+  // ensure selection UI resets when switching dates
+  try { updateBulkToolbar(); updateSelectAllCb(); } catch (e) { /* functions may live in state.js; ignore if not ready */ }
   save();
 }
 
