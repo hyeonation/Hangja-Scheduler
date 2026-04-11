@@ -568,7 +568,7 @@ tbody tr.selected-row{
   display:flex;flex-direction:column;gap:6px;align-items:center
 }
 .bulk-wrap-small{
-  display:flex;gap:6px;align-items:center
+  display:flex;flex-direction:row;gap:6px;align-items:center
 }
 .bulk-delta-label{ font-size:14px; color:var(--text-muted); white-space:nowrap; }
 .bulk-delta-input{
