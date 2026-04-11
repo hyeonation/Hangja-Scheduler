@@ -195,7 +195,12 @@ tr.flash-copied{animation:flash-copied .55s ease-out}
 .tag-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .tag-btn{padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
 .tag-btn:hover,.tag-btn.sel{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.pos-manage-tag{display:inline-flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 4px 3px 10px;font-size:12px;color:var(--text-muted)}
+.pos-manage-tag{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 4px 3px 8px;font-size:12px;color:var(--text-muted);user-select:none}
+.pos-drag{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:grab;flex-shrink:0;transition:all .15s}
+.pos-drag:active{cursor:grabbing}
+.pos-manage-tag:hover .pos-drag{color:var(--text-muted)}
+.pos-manage-tag.p-dragging{opacity:.35;background:var(--surface)!important}
+.pos-manage-tag.p-drag-over{box-shadow:0 -2px 0 var(--accent)}
 .pos-del-btn{width:18px;height:18px;border-radius:50%;background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;padding:0;line-height:1}
 .pos-del-btn:hover{color:var(--red);background:rgba(248,81,73,.15)}
 .add-pos-row{display:flex;gap:6px;margin-top:8px}

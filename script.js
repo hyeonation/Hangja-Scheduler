@@ -1376,10 +1376,53 @@ function renderPositionButtons(){
   const mg=document.getElementById('posManageGroup'); mg.innerHTML='';
   positions.forEach(pos=>{
     const wrap=document.createElement('span'); wrap.className='pos-manage-tag';
+    wrap.draggable = true;
+    wrap.dataset.pos = pos;
+
+    const drag=document.createElement('span'); drag.className='pos-drag';
+    drag.title='드래그하여 순서 변경';
+    drag.innerHTML='<svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor"><circle cx="2" cy="1.5" r="1.1"/><circle cx="6" cy="1.5" r="1.1"/><circle cx="2" cy="5" r="1.1"/><circle cx="6" cy="5" r="1.1"/><circle cx="2" cy="8.5" r="1.1"/><circle cx="6" cy="8.5" r="1.1"/></svg>';
+    drag.addEventListener('mousedown', e=>e.stopPropagation());
+
     const span=document.createElement('span'); span.textContent=pos;
     const del=document.createElement('button'); del.className='pos-del-btn'; del.textContent='×';
     del.title=`"${pos}" 삭제`; del.onclick=()=>deletePosition(pos);
-    wrap.appendChild(span); wrap.appendChild(del);
+    del.addEventListener('mousedown', e=>e.stopPropagation());
+    wrap.appendChild(drag);
+    wrap.appendChild(span);
+    wrap.appendChild(del);
+
+    wrap.addEventListener('dragstart', e=>{
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain', pos);
+      setTimeout(()=>wrap.classList.add('p-dragging'),0);
+    });
+    wrap.addEventListener('dragend', ()=>{
+      wrap.classList.remove('p-dragging');
+      mg.querySelectorAll('.pos-manage-tag').forEach(el=>el.classList.remove('p-drag-over'));
+    });
+    wrap.addEventListener('dragover', e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+      mg.querySelectorAll('.pos-manage-tag').forEach(el=>el.classList.remove('p-drag-over'));
+      wrap.classList.add('p-drag-over');
+    });
+    wrap.addEventListener('dragleave', ()=>wrap.classList.remove('p-drag-over'));
+    wrap.addEventListener('drop', e=>{
+      e.preventDefault();
+      wrap.classList.remove('p-drag-over');
+      const fromPos = e.dataTransfer.getData('text/plain');
+      const toPos = pos;
+      if (!fromPos || fromPos === toPos) return;
+      const fromIdx = positions.indexOf(fromPos);
+      const toIdx = positions.indexOf(toPos);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const [moved] = positions.splice(fromIdx, 1);
+      positions.splice(toIdx, 0, moved);
+      save();
+      renderPositionButtons();
+    });
+
     mg.appendChild(wrap);
   });
 }
