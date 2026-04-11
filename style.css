@@ -603,9 +603,7 @@ tbody tr.selected-row{
 }
 .hide-personnel .chip-cell {
   visibility: hidden;
-  /* pointer-events: none;
-  width: 280px;
-  min-width: 280px; */
+  
 }
 .hide-personnel .count-cell {
   /* count column stays visible */

@@ -833,6 +833,7 @@ function renderChips(container, row, pill) {
   const conflicted = getConflictNames(row);
 
   const modeSelected = (typeof personnelViewMode !== 'undefined' && personnelViewMode === 'selected');
+  const modeHidden = (typeof personnelViewMode !== 'undefined' && personnelViewMode === 'hidden');
   const allChip=document.createElement('span'); allChip.className='chip-all';
   // 전체선택은 충돌 없는 인원 기준으로만 체크 여부 판단
   const availablePersonnel = personnel.filter(p => !conflicted.has(p.name));
@@ -851,7 +852,8 @@ function renderChips(container, row, pill) {
 
   personnel.forEach(p=>{
     // if we're in 'selected' mode and this person is not assigned to the row, skip rendering
-    if (modeSelected && !row.assigned.includes(p.name)) return;
+    if (modeSelected && !row.assigned.includes(p.name)) return;   // 'selected' 모드에서는 배치된 인원만 보이도록
+    if (modeHidden) return;                                       // 'hidden' 모드에서는 인원 칩 자체를 숨김
     const isConflict = conflicted.has(p.name);
     const lbl=document.createElement('label');
     let cls = 'chip-label';
