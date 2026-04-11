@@ -191,6 +191,9 @@ function switchDate(newDate) {
   if (newDate === currentDate) return; // 이미 같은 날짜면 무시
   currentDate = newDate;
   dutyRows    = JSON.parse(localStorage.getItem('dutyRows_'+currentDate) || '[]');
+  // Ensure assigned names are in sync with current `personnel` (remove unknown names,
+  // update count pills). This recalculates "전원 소임" correctly for the new date.
+  try { refreshAllChips(); } catch (e) { /* ignore if function not ready */ }
   undoStack   = [];
   redoStack   = [];
   selectedIds.clear();
