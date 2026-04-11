@@ -32,6 +32,23 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-ghost:hover{background:var(--surface2);color:var(--text)}
 .btn-sm{height:26px;padding:0 10px;font-size:11px}
 
+/* Dark themed scrollbars to match the app UI (WebKit + Firefox) */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--surface2) transparent; /* thumb track */
+}
+
+/* WebKit browsers */
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background: transparent; }
+::-webkit-scrollbar-thumb{
+  background: var(--surface2);
+  border-radius:10px;
+  border:2px solid transparent; /* keep thumb inset */
+  background-clip:padding-box;
+}
+::-webkit-scrollbar-thumb:hover{ background: var(--surface); }
+
 /* Copy-to-today button in copy modal: bright white text for emphasis */
 #copyTodayBtn{ color:#fff; background:var(--surface2); border-color:var(--border); transition:background .14s ease, transform .12s ease, filter .14s ease; }
 #copyTodayBtn:hover{
