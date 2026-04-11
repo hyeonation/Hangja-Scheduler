@@ -595,9 +595,17 @@ tbody tr.selected-row{
 
 
 /* ── HIDE PERSONNEL TOGGLE ── */
-.hide-personnel .chip-cell,
+/* Preserve column width when hiding personnel to avoid table layout reflow.
+   Use visibility:hidden and fixed min-width so other columns don't redistribute. */
 .hide-personnel th.th-personnel {
-  display: none;
+  /* hide label but keep column width */
+  color:transparent;
+}
+.hide-personnel .chip-cell {
+  visibility: hidden;
+  /* pointer-events: none;
+  width: 280px;
+  min-width: 280px; */
 }
 .hide-personnel .count-cell {
   /* count column stays visible */
