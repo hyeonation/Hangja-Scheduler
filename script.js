@@ -428,6 +428,74 @@ function copyDutyRow(rowId) {
   toast('행 복사 완료');
 }
 
+// 새 소임 행을 주어진 행(rowId) 바로 아래에 삽입한다.
+// 삽입되는 행의 시작시간은 원본 행의 종료시간(start = src.end)이고,
+// 소요시간은 원본 행의 소요를 복사하거나 기본값(30분)을 사용한다.
+function insertDutyRowAfter(rowId, opts = {}) {
+  const copyDuration = opts.copyDuration !== false; // 기본: 복사
+  const defaultDur = typeof opts.defaultDur === 'number' ? opts.defaultDur : 30;
+  const srcIdx = dutyRows.findIndex(r => r.id == rowId);
+  if (srcIdx === -1) return;
+  const src = dutyRows[srcIdx];
+  // 우선 source의 end를 새 시작으로 사용
+  let srcEndMin = parseMin(src.end);
+  const srcStartMin = parseMin(src.start);
+  // duration 계산: 가능한 경우 원본 소요 복사
+  let dur = defaultDur;
+  if (srcStartMin !== null && srcEndMin !== null) {
+    dur = ((srcEndMin - srcStartMin) + MINS_IN_DAY) % MINS_IN_DAY;
+    if (dur === 0) dur = defaultDur;
+  } else if (srcStartMin !== null && copyDuration) {
+    // 종료가 없고 시작만 있는 경우, 사용자가 원하면 기본 길이로 생성
+    dur = defaultDur;
+    if (srcEndMin === null) srcEndMin = (srcStartMin + dur) % MINS_IN_DAY;
+  }
+
+  // 새 시작이 없으면 시작을 source.start로 하거나 09:00으로 기본화
+  let newStartMin;
+  if (srcEndMin !== null) newStartMin = srcEndMin;
+  else if (srcStartMin !== null) newStartMin = (srcStartMin + dur) % MINS_IN_DAY;
+  else newStartMin = 9 * 60; // 09:00 fallback
+
+  const newEndMin = (newStartMin + dur) % MINS_IN_DAY;
+  const newRow = {
+    id: Date.now(),
+    start: String(Math.floor(newStartMin/60)).padStart(2,'0') + ':' + String(newStartMin%60).padStart(2,'0'),
+    end:   String(Math.floor(newEndMin/60)).padStart(2,'0') + ':' + String(newEndMin%60).padStart(2,'0'),
+    duty:  '',
+    assigned: []
+  };
+
+  snapshot();
+  dutyRows.splice(srcIdx+1, 0, newRow);
+  save();
+  rebuildDutyTable();
+  renderOverview();
+
+  // 포커스: 새로 생성된 행의 시작시간 입력에 포커스하고 전체 선택
+  const tbody = document.getElementById('dutyBody');
+  const newTr = tbody.querySelector(`tr[data-id="${newRow.id}"]`);
+  if (newTr) {
+    newTr.classList.add('flash-added'); setTimeout(()=>newTr.classList.remove('flash-added'),550);
+    const startInp = newTr.querySelector('input[data-col="start"]');
+    if (startInp) { startInp.focus(); startInp.select(); }
+  }
+  toast('행 삽입 완료');
+}
+
+// Shift+Enter: 커서가 놓인 소임 바로 아래에 새 행 추가
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' || !e.shiftKey) return;
+  const active = document.activeElement;
+  if (!active) return;
+  const tr = active.closest && active.closest('tr');
+  if (!tr) return;
+  // 이 핸들러는 소임 테이블(#dutyBody) 내부에서만 동작
+  if (!tr.closest || !tr.closest('#dutyBody')) return;
+  e.preventDefault();
+  insertDutyRowAfter(tr.dataset.id);
+});
+
 // ── 셀 키보드 내비게이션 ──
 // 소임 목록 테이블에서 ↑/↓ 키로 같은 컬럼의 위아래 행으로 포커스를 이동한다.
 // data-col 속성으로 컬럼을 식별한다 (start / end / dur / duty).
