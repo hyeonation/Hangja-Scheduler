@@ -203,15 +203,67 @@ tr.flash-copied{animation:flash-copied .55s ease-out}
 
 /* ── GANTT ── */
 .gantt-name-col{width:140px;min-width:140px;padding:0 12px 0 24px;border-right:1px solid var(--border)}
-.gantt-row{display:flex;align-items:center;border-bottom:1px solid var(--border2);min-height:52px}
+.gantt-row{display:flex;align-items:center;min-height:52px;position:relative;border-bottom:none}
 .gantt-row:hover{background:rgba(255,255,255,.02)}
-.gantt-person{width:140px;min-width:140px;padding:0 12px 0 24px;border-right:1px solid var(--border);flex-shrink:0}
-.gantt-person-name{font-size:13px;font-weight:600;display:flex;align-items:baseline;gap:5px;flex-wrap:nowrap}
-.gantt-person-pos{font-size:10px;font-weight:500;color:var(--text-dim);white-space:nowrap;flex-shrink:0}
+/* centered horizontal guide line for each person row */
+.gantt-row::after{
+  content:'';
+  position:absolute;
+  left:0; right:0;
+  top:50%;
+  height:1px;
+  background:rgb(140, 150, 160);
+  pointer-events:none;
+  z-index:1;
+}
+.gantt-person{
+  width:140px;
+  min-width:140px;
+  /* padding:8px 12px 8px 24px; */
+  border-right:1px solid var(--border);
+  flex-shrink:0;
+  position:relative;
+  z-index:2;
+  background:var(--surface2);
+  border:1.5px solid var(--text-muted);
+  border-radius:10px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  text-align: right;
+}
+.gantt-person:hover{background:rgba(255,255,255,.02)}
+.gantt-person-name{
+  font-size:13px;
+  font-weight:700;
+  display:block;
+  width:100%;
+  color:var(--text);
+}
+.gantt-person-inner{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.gantt-person-note{
+  font-size:11px;
+  color:var(--orange);
+  margin:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:120px;
+  flex:0 0 auto;
+}
+.gantt-person-main{display:inline-block;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-person-pos{
+  font-size:10px;
+  font-weight:500;
+  color:var(--text-muted);
+  white-space:nowrap;
+  display:inline-block;
+  margin-left:6px;
+}
 .gantt-person-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
-.gantt-timeline{flex:1;position:relative;height:52px}
+.gantt-timeline{flex:1;position:relative;height:52px;z-index:2}
 .gantt-timeline::before{content:'';position:absolute;inset:0;background-image:var(--grid-lines,none);pointer-events:none}
-.gantt-bar{position:absolute;top:50%;transform:translateY(-50%);height:28px;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:default;transition:filter .15s,height .15s;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.gantt-bar{position:absolute;top:50%;transform:translateY(-50%);height:28px;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:default;transition:filter .15s,height .15s;box-shadow:0 1px 4px rgba(0,0,0,.4);z-index:3}
 .gantt-bar:hover{filter:brightness(1.2);height:34px;z-index:5}
 .gantt-bar-label{overflow:hidden;text-overflow:ellipsis}
 .ruler-tick{position:absolute;bottom:0;top:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;pointer-events:none}
@@ -678,14 +730,16 @@ tbody tr.selected-row{
 tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px solid rgba(63,185,80,.25); outline-offset:-1px; }
 
 
+.gantt-person-inner{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
 .gantt-person-note{
-  font-size:10px;
+  font-size:11px;
   color:var(--orange);
-  margin-top:2px;
+  margin:0;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width:110px;
+  max-width:120px;
+  flex:0 0 auto;
 }
 
 

@@ -24,6 +24,11 @@ function getColor(name) {
   if (!colorMap[name]) { colorMap[name] = PALETTE[colorIdx % PALETTE.length]; colorIdx++; }
   return colorMap[name];
 }
+// Escape HTML special chars for safe insertion into innerHTML
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 // 색상 매핑 초기화 — renderOverview / refreshGantt 호출 전에 실행하여 색상을 일관되게 유지
 function resetColors() { Object.keys(colorMap).forEach(k => delete colorMap[k]); colorIdx = 0; }
 
@@ -404,7 +409,7 @@ function addDutyRow(data) {
     }
   }
 
-  const row = { id, start: data?.start||defaultStart, end: data?.end||'', duty: data?.duty||'', assigned: data?.assigned||[] };
+  const row = { id, start: data?.start||defaultStart, end: data?.end||'', duty: data?.duty||'', assigned: data?.assigned||[], noConflict: !!data?.noConflict };
   if (!data) { snapshot(); dutyRows.push(row); save(); } // 신규 추가만 저장
   renderDutyRow(row);
   updateDutyEmpty();
@@ -416,7 +421,7 @@ function copyDutyRow(rowId) {
   const src = dutyRows.find(r => r.id==rowId); if (!src) return;
   snapshot();
   const srcIdx = dutyRows.findIndex(r => r.id==rowId);
-  const newRow = { id: Date.now(), start: src.start, end: src.end, duty: src.duty, assigned: [] };
+  const newRow = { id: Date.now(), start: src.start, end: src.end, duty: src.duty, assigned: [], noConflict: !!src.noConflict };
   dutyRows.splice(srcIdx+1, 0, newRow); // 원본 바로 아래에 삽입
   save();
   rebuildDutyTable();
@@ -463,7 +468,8 @@ function insertDutyRowAfter(rowId, opts = {}) {
     start: String(Math.floor(newStartMin/60)).padStart(2,'0') + ':' + String(newStartMin%60).padStart(2,'0'),
     end:   String(Math.floor(newEndMin/60)).padStart(2,'0') + ':' + String(newEndMin%60).padStart(2,'0'),
     duty:  '',
-    assigned: []
+    assigned: [],
+    noConflict: false
   };
 
   snapshot();
@@ -1243,7 +1249,7 @@ function exportCSV(){
 
   // ── 소임 섹션 ──
   csv+='[소임]\n';
-  csv+='시작시간,종료시간,소요(분),소임,인원\n';
+  csv+='시작시간,종료시간,소요(분),소임,인원,충돌무시\n';
   dutyRows.forEach(r=>{
     const allNames = personnel.map(p=>p.name);
     const isAll = allNames.length > 0 && allNames.every(n=>r.assigned.includes(n));
@@ -1257,8 +1263,14 @@ function exportCSV(){
     const assignedText = isAll ? '전원' : sortedAssigned.join(' / ');
     const s=parseMin(r.start),e=parseMin(r.end);
     const dur=(s!==null&&e!==null)?((e-s+MINS_IN_DAY)%MINS_IN_DAY):'';
-    csv+=`"${r.start}","${r.end}","${dur}","${r.duty}","${assignedText}"\n`;
+    csv+=`"${r.start}","${r.end}","${dur}","${r.duty}","${assignedText}","${r.noConflict?1:''}"\n`;
   });
+
+  // ── 인원 섹션 ──
+  // 직책 섹션 (직책 관리의 순서를 보존하기 위해 별도 섹션으로 출력)
+  csv+='\n[직책]\n';
+  csv+='직책\n';
+  positions.forEach(pos => { csv+=`"${pos}"\n`; });
 
   // ── 인원 섹션 ──
   csv+='\n[인원]\n';
@@ -1288,18 +1300,20 @@ function importCSV(input) {
     const text = e.target.result.replace(/^\uFEFF/, '');
     const allLines = text.split(/\r?\n/);
 
-    // ── 섹션 분리: [소임] / [인원] 구분자 지원 ──
-    let dutyLines = [], personnelLines = [];
-    let mode = null; // null | 'duty' | 'personnel'
+    // ── 섹션 분리: [소임] / [직책] / [인원] 구분자 지원 ──
+    let dutyLines = [], positionsLines = [], personnelLines = [];
+    let mode = null; // null | 'duty' | 'positions' | 'personnel'
     let hasSections = false;
 
     for (const raw of allLines) {
       const line = raw.trim();
       if (line === '[소임]')      { mode = 'duty';      hasSections = true; continue; }
+      if (line === '[직책]')    { mode = 'positions'; hasSections = true; continue; }
       if (line === '[인원]')      { mode = 'personnel'; hasSections = true; continue; }
       if (!line) continue;
       if (hasSections) {
         if (mode === 'duty')      dutyLines.push(line);
+        else if (mode === 'positions') positionsLines.push(line);
         else if (mode === 'personnel') personnelLines.push(line);
       } else {
         // 섹션 구분자 없는 구형 CSV: 헤더로 타입 판별
@@ -1319,9 +1333,10 @@ function importCSV(input) {
     }
 
     const hasDutyData      = dutyLines.length > 1;
+    const hasPositionsData = positionsLines.length > 1;
     const hasPersonnelData = personnelLines.length > 1;
 
-    if (!hasDutyData && !hasPersonnelData) {
+    if (!hasDutyData && !hasPersonnelData && !hasPositionsData) {
       toast('⚠ 유효한 CSV 파일이 아닙니다.'); return;
     }
 
@@ -1346,6 +1361,21 @@ function importCSV(input) {
 
     let dutyAdded = 0, personnelAdded = 0;
 
+    // ── positions 섹션이 있으면 먼저 파싱하여 순서를 복원
+    if (hasPositionsData) {
+      // positionsLines[0] expected to be header, subsequent lines are position names
+      const posList = [];
+      for (let i = 1; i < positionsLines.length; i++) {
+        const cols = parseCSVLine(positionsLines[i]);
+        const pos = (cols[0] || '').trim();
+        if (pos) posList.push(pos);
+      }
+      if (posList.length) {
+        positions = posList.slice();
+        selectedPos = positions[0] || '';
+      }
+    }
+
     // ── 인원 파싱 먼저 (소임의 '전원' 처리가 personnel을 참조하므로) ──
     if (hasPersonnelData) {
       const pHeader = parseCSVLine(personnelLines[0]);
@@ -1354,6 +1384,9 @@ function importCSV(input) {
       const iNote = getIdx(pHeader, '특이사항', '메모');
       if (iName !== -1) {
         personnel = []; // 기존 인원 전체 삭제
+        // collect positions in CSV order (unique)
+        const posOrder = [];
+        const posSet = new Set();
         for (let i = 1; i < personnelLines.length; i++) {
           const cols = parseCSVLine(personnelLines[i]);
           const name = (cols[iName] || '').trim();
@@ -1362,6 +1395,13 @@ function importCSV(input) {
           const note     = iNote !== -1 ? (cols[iNote] || '').trim() : '';
           personnel.push({ id: Date.now() + i * 1000, name, position, note });
           personnelAdded++;
+          if (position && !posSet.has(position)) { posSet.add(position); posOrder.push(position); }
+        }
+        // If CSV defined positions (from personnel table) and no explicit [직책] section,
+        // replace current positions list with CSV order
+        if (!hasPositionsData && posOrder.length) {
+          positions = posOrder.slice();
+          selectedPos = positions[0] || '';
         }
         save();
         renderPersonnelList();
@@ -1372,10 +1412,11 @@ function importCSV(input) {
     // ── 소임 파싱 (인원 파싱 후 실행하여 '전원' 처리 정확히 반영) ──
     if (hasDutyData) {
       const dHeader = parseCSVLine(dutyLines[0]);
-      const iStart  = getIdx(dHeader, '시작');
-      const iEnd    = getIdx(dHeader, '종료');
-      const iDuty   = getIdx(dHeader, '소임');
-      const iAssign = getIdx(dHeader, '인원');
+      const iStart     = getIdx(dHeader, '시작');
+      const iEnd       = getIdx(dHeader, '종료');
+      const iDuty      = getIdx(dHeader, '소임');
+      const iAssign    = getIdx(dHeader, '인원');
+      const iNoConflict= getIdx(dHeader, '충돌', '충돌무시');
       if (iStart !== -1 && iDuty !== -1) {
         snapshot();
         dutyRows = []; // 기존 소임 전체 삭제
@@ -1392,7 +1433,13 @@ function importCSV(input) {
           } else if (assignRaw) {
             assigned = assignRaw.split('/').map(s => s.trim()).filter(Boolean);
           }
-          dutyRows.push({ id: Date.now() + i, start, end, duty, assigned });
+          // parse noConflict flag if present
+          let noConflict = false;
+          if (iNoConflict !== -1) {
+            const rawNc = (cols[iNoConflict] || '').trim();
+            noConflict = /^(1|true|yes|y|예)$/i.test(rawNc);
+          }
+          dutyRows.push({ id: Date.now() + i, start, end, duty, assigned, noConflict });
           dutyAdded++;
         }
         save();
@@ -1507,7 +1554,11 @@ function refreshGantt(){
     const myDuties=dutyRows.filter(r=>r.assigned.includes(p.name) && !isAllPersonnel(r));
     const row=document.createElement('div'); row.className='gantt-row';
     const nc=document.createElement('div'); nc.className='gantt-person';
-    nc.innerHTML=`<div class="gantt-person-name">${p.name}${p.position?`<span class="gantt-person-pos">${p.position}</span>`:''}</div>${p.note?`<div class="gantt-person-note" title="${p.note}">⚑ ${p.note}</div>`:''}`;
+    // wrap name in a span to avoid layout collisions with position span
+    const nameHtml = `<span class="gantt-person-main">${escapeHtml(p.name)}</span>`;
+    const posHtml = p.position ? `<span class="gantt-person-pos">${escapeHtml(p.position)}</span>` : '';
+    const noteHtml = p.note ? `<div class="gantt-person-note" title="${escapeHtml(p.note)}">⚑ ${escapeHtml(p.note)}</div>` : '';
+    nc.innerHTML = `<div class="gantt-person-name"><div class="gantt-person-inner">${noteHtml}${nameHtml}</div>${posHtml}</div>`;
     row.appendChild(nc);
     const tl=document.createElement('div'); tl.className='gantt-timeline';
     if (nmInView) {
