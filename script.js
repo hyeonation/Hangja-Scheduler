@@ -593,21 +593,29 @@ function renderDutyRow(row) {
   // - keydown: ↑↓ = 행 이동, Shift+↑↓ = ±5분 조정
   const tdDur  = document.createElement('td'); tdDur.style.cssText='text-align:center';
   const inpDur = document.createElement('input');
-  inpDur.type='number'; inpDur.className='input inp-dur'; inpDur.dataset.col='dur';
-  inpDur.style.cssText="width:68px;text-align:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:12px;-moz-appearance:textfield;appearance:textfield";
-  inpDur.placeholder='분'; inpDur.min=1; inpDur.max=1440;
+  inpDur.type='text'; inpDur.className='input inp-dur'; inpDur.dataset.col='dur';
+  inpDur.maxLength=4;
+  inpDur.style.cssText="width:68px;text-align:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:12px";
+  inpDur.placeholder='분';
   inpDur.title = '↑↓ : 위아래 행 이동\nShift+↑↓ : ±5분 조정';
   // 초기값: start·end 모두 있을 때 소요시간 계산
   (()=>{ const s=parseMin(row.start),e=parseMin(row.end); if(s!==null&&e!==null){const d=((e-s)+MINS_IN_DAY)%MINS_IN_DAY; if(d>0) inpDur.value=d;} })();
   inpDur.onfocus = () => { snapshot(); };
   inpDur.oninput = e => {
-    const mins   = parseInt(e.target.value);
+    // 시작/종료 입력칸과 동일하게 text 타입을 유지하면서 숫자만 허용
+    const digits = (e.target.value || '').replace(/[^0-9]/g, '').slice(0, 4);
+    if (e.target.value !== digits) e.target.value = digits;
+    const mins   = parseInt(digits, 10);
     const curRow = dutyRows.find(r => r.id==row.id);
     if (!curRow) return;
     const s = parseMin(curRow.start);
     if (s===null || isNaN(mins) || mins<=0) return;
+    if (mins > MINS_IN_DAY) {
+      e.target.value = String(MINS_IN_DAY);
+    }
+    const safeMins = Math.min(mins, MINS_IN_DAY);
     // 소요시간 입력 → 종료시간 역산
-    const newE      = ((s+mins)%MINS_IN_DAY+MINS_IN_DAY)%MINS_IN_DAY;
+    const newE      = ((s+safeMins)%MINS_IN_DAY+MINS_IN_DAY)%MINS_IN_DAY;
     const hh        = String(Math.floor(newE/60)).padStart(2,'0');
     const mm        = String(newE%60).padStart(2,'0');
     const newEndStr = hh+':'+mm;
