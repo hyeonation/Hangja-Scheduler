@@ -908,6 +908,12 @@ function updateRowData(rowId,field,value){
 // 특정 소임 행을 dutyRows에서 제거하고 DOM에서도 삭제한다.
 function deleteDutyRow(rowId,trEl){
   dutyRows=dutyRows.filter(r=>r.id!=rowId);
+  // If this row was selected, remove from selected set and update bulk UI
+  if (selectedIds.has(rowId)) {
+    selectedIds.delete(rowId);
+    updateBulkToolbar();
+    updateSelectAllCb();
+  }
   trEl.remove(); renumberRows(); updateDutyEmpty(); save();
 }
 
