@@ -1447,6 +1447,13 @@ function addPosition(){
 
 // 직책을 목록에서 삭제한다. 현재 선택 중이던 직책이면 선택 초기화.
 function deletePosition(pos){
+  const holders = personnel.filter(p => p.position === pos);
+  if (holders.length) {
+    const names = holders.map(p => p.name).join(', ');
+    alert(`"${pos}" 직책은 삭제할 수 없습니다.\n\n현재 해당 직책 인원: ${names}`);
+    toast(`⚠ "${pos}" 직책 사용 중 (${holders.length}명)`);
+    return;
+  }
   if(!confirm(`"${pos}" 직책을 삭제하시겠습니까?`)) return;
   positions=positions.filter(p=>p!==pos);
   if(selectedPos===pos) selectedPos='';
@@ -1471,8 +1478,9 @@ function addPersonnel(){
 
 // 특정 인원을 목록에서 삭제하고 소임 배치에서도 제거한다.
 function deletePersonnel(id,e){
-  e&&e.stopPropagation();
   const p=personnel.find(p=>p.id===id); if(!p) return;
+  if(!confirm(`"${p.name}을(를)" 삭제하시겠습니까?`)) return;
+  e&&e.stopPropagation();
   personnel=personnel.filter(p=>p.id!==id);
   save(); renderPersonnelList(); refreshAllChips(); renderOverview();
   toast(`삭제: ${p.name}`);
