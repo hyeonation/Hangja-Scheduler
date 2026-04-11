@@ -138,6 +138,13 @@ tbody tr.drag-over-bottom{box-shadow:0 2px 0 var(--accent)!important}
 .action-btn:hover{background:var(--surface2);color:var(--text)}
 .action-btn.copy-btn:hover{color:var(--blue)}
 .action-btn.del-btn2:hover{background:rgba(248,81,73,.15);color:var(--red)}
+
+/* no-conflict icon button */
+.no-conflict-btn{width:32px;height:28px;border-radius:6px;background:transparent;border:1px solid transparent;color:var(--text-dim);display:flex;align-items:center;justify-content:center;padding:0 6px;margin-right:6px}
+.no-conflict-btn svg{opacity:.85}
+.no-conflict-btn:hover{background:rgba(255,255,255,.02);color:var(--text)}
+.no-conflict-btn.active{background:rgba(227,179,65,.12);border-color:var(--orange);color:var(--orange)}
+.no-conflict-btn.active svg{opacity:1}
 .action-cell{display:flex;align-items:center;gap:2px;white-space:nowrap}
 .undo-btn-wrap{position:relative;display:inline-flex}
 .undo-badge{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;background:var(--orange);color:#000;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;pointer-events:none;line-height:1}

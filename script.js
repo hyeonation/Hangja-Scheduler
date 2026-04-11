@@ -741,6 +741,25 @@ function renderDutyRow(row) {
   // ⑩ 액션 버튼 셀 — 행 복사 / 행 삭제
   const tdAct  = document.createElement('td');
   const actCell = document.createElement('div'); actCell.className='action-cell';
+  // 충돌 무시 아이콘 토글 (버튼)
+  const noBtn = document.createElement('button');
+  noBtn.type = 'button';
+  noBtn.className = 'action-btn no-conflict-btn' + (row.noConflict ? ' active' : '');
+  noBtn.title = row.noConflict ? '충돌무시: 켜짐' : '충돌무시: 꺼짐';
+  noBtn.setAttribute('aria-pressed', row.noConflict ? 'true' : 'false');
+  // shield icon
+  noBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 3v5c0 5-3.7 9.7-7 11-3.3-1.3-7-6-7-11V5l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg>';
+  noBtn.onclick = () => {
+    row.noConflict = !row.noConflict;
+    noBtn.classList.toggle('active', !!row.noConflict);
+    noBtn.title = row.noConflict ? '충돌무시: 켜짐' : '충돌무시: 꺼짐';
+    noBtn.setAttribute('aria-pressed', row.noConflict ? 'true' : 'false');
+    save();
+    refreshAllChipsConflicts();
+    renderOverview();
+    refreshAlertPanel();
+  };
+  actCell.appendChild(noBtn);
 
   const copyBtn = document.createElement('button');
   copyBtn.className='action-btn copy-btn'; copyBtn.title='행 복사 (Ctrl+D)';
@@ -789,12 +808,16 @@ function getConflictNames(currentRow) {
   const s1 = parseMin(currentRow.start);
   const e1 = parseMin(currentRow.end);
   const conflicted = new Set();
+  // If this row is marked to ignore conflicts, it never shows conflicts
+  if (currentRow.noConflict) return conflicted;
 
   const currentIdx = dutyRows.findIndex(r => r.id == currentRow.id);
 
   dutyRows.forEach((row, idx) => {
     // 자기 자신 제외, 현재 행보다 앞에 있는 행만
     if (row.id == currentRow.id || idx >= currentIdx) return;
+    // Skip rows that are marked to ignore conflicts (they do not cause conflicts)
+    if (row.noConflict) return;
 
     const s2 = parseMin(row.start);
     const e2 = parseMin(row.end);
@@ -1919,7 +1942,7 @@ function refreshAlertPanel() {
       const fab = document.getElementById('alertFab');
       if (fab) {
         fab.classList.add('panel-open');
-        fab.title = '특이사항 패널 닫기';
+        fab.title = '충돌감지 패널 닫기';
         const icon = document.getElementById('alertFabIcon');
         if (icon) icon.textContent = '✕';
       }
@@ -1984,6 +2007,8 @@ function getAllConflicts() {
 
       const sA = parseMin(rowA.start), eA = parseMin(rowA.end);
       const sB = parseMin(rowB.start), eB = parseMin(rowB.end);
+      // Skip rows that are marked to ignore conflicts
+      if (rowA.noConflict || rowB.noConflict) continue;
       if (sA === null || eA === null || sB === null || eB === null) continue;
       if (!timeOverlap(sA, eA, sB, eB)) continue;
 
