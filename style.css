@@ -32,6 +32,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-ghost:hover{background:var(--surface2);color:var(--text)}
 .btn-sm{height:26px;padding:0 10px;font-size:11px}
 
+/* Copy-to-today button in copy modal: bright white text for emphasis */
+#copyTodayBtn{ color:#fff; background:var(--surface2); border-color:var(--border); transition:background .14s ease, transform .12s ease, filter .14s ease; }
+#copyTodayBtn:hover{
+  /* use normal button hover look: subtle surface background and normal text color */
+  background:var(--surface2);
+  color:var(--text);
+  border-color:var(--border);
+  transform:none;
+  filter:none;
+}
+
 /* TABLE */
 .table-wrap{overflow:visible;padding:0 24px 32px}
 table{width:100%;min-width:760px;border-collapse:collapse;margin-top:16px}
