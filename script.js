@@ -2135,6 +2135,16 @@ function executeCopy() {
   closeCopyModal();
 }
 
+// 바로 오늘 날짜로 선택된 소임들을 복사합니다.
+function copyToToday() {
+  const today = todayStr();
+  if (today === currentDate) { toast('⚠ 현재 날짜와 동일합니다.'); return; }
+  if (selectedIds.size === 0) { toast('⚠ 복사할 행을 먼저 선택하세요.'); return; }
+  copyTargetDate = today;
+  // call executeCopy which performs validation and the copy
+  executeCopy();
+}
+
 // 날짜 복사 모달 닫기
 function closeCopyModal(e) {
   if (!e || e.target === document.getElementById('copyModalOverlay')) {

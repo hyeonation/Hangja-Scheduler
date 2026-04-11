@@ -268,9 +268,13 @@
         <div class="cal-grid" id="calGrid"></div>
       </div>
 
-      <button class="copy-confirm-btn" id="copyConfirmBtn" onclick="executeCopy()" disabled>
-        복사하기
-      </button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost" id="copyTodayBtn" onclick="copyToToday()" title="오늘 날짜로 바로 복사">오늘 날짜로 복사</button>
+        <div style="flex:1"></div>
+        <button class="copy-confirm-btn" id="copyConfirmBtn" onclick="executeCopy()" disabled>
+          복사하기
+        </button>
+      </div>
     </div>
   </div>
 </div>
