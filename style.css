@@ -35,7 +35,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* Dark themed scrollbars to match the app UI (WebKit + Firefox) */
 * {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--surface2) transparent; /* thumb track */
+  scrollbar-color: var(--border) transparent; /* thumb track */
 }
 
 /* WebKit browsers */
