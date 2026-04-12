@@ -232,6 +232,11 @@ function switchTab(i) {
   document.querySelectorAll('.tab').forEach((t,j)  => t.classList.toggle('active', i===j));
   document.querySelectorAll('.page').forEach((p,j) => p.classList.toggle('active', i===j));
   setAlertPanelVisibilityByTab(i);
+  // show gantt overlay toggle only on 인원 기준 배치표 (tab index 1)
+  try {
+    const btn = document.getElementById('ganttOverlayToggle');
+    if (btn) btn.style.display = (i === 1) ? 'inline-flex' : 'none';
+  } catch (e) {}
   if (i===0) renderOverview(); // 소임 탭으로 돌아올 때 overview 갱신
   if (i===1) refreshGantt();   // gantt 탭 진입 시 갱신
 }
@@ -1656,8 +1661,36 @@ function refreshGantt(){
   });
   applyGridLines();
 
-  // 전원 소임 오버레이 렌더: 레이아웃 확정 후 다음 프레임에 실행
+  // apply overlay stacking preference and then render overlay after layout settles
+  applyGanttOverlaySetting();
   setTimeout(() => renderAllOverlay(), 50);
+}
+
+// Gantt overlay stacking preference (saved in localStorage)
+function getGanttOverlayTopSetting(){
+  try { return localStorage.getItem('ganttOverlayTop') !== 'false'; } catch(e) { return true; }
+}
+function setGanttOverlayTopSetting(val){
+  try { localStorage.setItem('ganttOverlayTop', val ? 'true' : 'false'); } catch(e){}
+  applyGanttOverlaySetting();
+}
+function toggleGanttOverlayTop(){
+  // legacy toggle handler — invert current setting
+  const cur = getGanttOverlayTopSetting();
+  setGanttOverlayTopSetting(!cur);
+}
+function applyGanttOverlaySetting(){
+  const overlay = document.getElementById('ganttAllOverlay');
+  if (!overlay) return;
+  const onTop = getGanttOverlayTopSetting();
+  overlay.style.zIndex = onTop ? '8' : '1';
+  const wrapper = document.getElementById('ganttOverlayToggle');
+  const cb = document.getElementById('ganttOverlayToggleCb');
+  if (cb) cb.checked = !!onTop;
+  if (wrapper) {
+    wrapper.classList.toggle('active', onTop);
+    wrapper.title = onTop ? '전원 소임 오버레이를 개인 소임보다 위에 표시합니다' : '전원 소임 오버레이를 개인 소임 아래에 둡니다';
+  }
 }
 
 // '전원 소임' 오버레이 렌더링

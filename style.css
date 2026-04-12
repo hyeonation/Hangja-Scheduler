@@ -934,7 +934,7 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
 .gantt-bar-all-label{
   writing-mode:vertical-lr;
   text-orientation:mixed;
-  font-size:clamp(12px, 2vh, 16px);
+  font-size:clamp(12px, 2vh, 64px);
   font-weight:800;
   letter-spacing:.06em;
   white-space:nowrap;
@@ -987,3 +987,28 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
 /* TOAST */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:13px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;transition:all .25s;pointer-events:none;z-index:400;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Subtle zebra striping for readability */
+.table-wrap table tbody tr:nth-child(even){
+  background: rgba(255,255,255,0.02);
+}
+.table-wrap table tbody tr:nth-child(odd){
+  background: transparent;
+}
+
+/* Subtle striping for Gantt rows; keep hover rule precedence */
+#ganttRows .gantt-row:nth-child(even){
+  background: rgba(255,255,255,0.01);
+}
+#ganttRows .gantt-row:hover{ background: rgba(255,255,255,0.02) !important; }
+
+/* Toggle switch for gantt overlay */
+.toggle-switch{ display:inline-block; position:relative; width:44px; height:24px; vertical-align:middle }
+.toggle-switch input{ display:none }
+.toggle-slider{ position:absolute; inset:0; background:rgba(255,255,255,0.06); border-radius:999px; transition:background .15s }
+.toggle-slider::before{ content:''; position:absolute; left:3px; top:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .15s, background .15s; box-shadow:0 1px 2px rgba(0,0,0,.25) }
+.toggle-switch input:checked + .toggle-slider{ background:var(--accent) }
+.toggle-switch input:checked + .toggle-slider::before{ transform:translateX(20px) }
+.toggle-switch[title]{ cursor:pointer }
+
+

@@ -57,6 +57,12 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 4h18v2H3z"></path><path d="M6 10h12v2H6z"></path><path d="M10 16h4v2h-4z"></path></svg>
     <span style="margin-left:6px">전원 참여</span>
   </button>
+  <div id="ganttOverlayToggle" style="display:none;margin-left:8px">
+    <label class="toggle-switch" title="전원 소임 오버레이 위치">
+      <input type="checkbox" id="ganttOverlayToggleCb" onchange="setGanttOverlayTopSetting(this.checked)">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
 </div>
 
 <!-- ════════════════════ PAGE 0 : 소임 기준 배치표 ════════════════════ -->
@@ -187,12 +193,13 @@
   <div style="padding-bottom:40px">
     <div id="ganttWrap" style="min-width:860px;padding-right:24px">
       <div style="display:flex;position:sticky;top:0;z-index:10;background:var(--bg)">
-        <div class="gantt-name-col" style="display:flex;align-items:flex-end;padding-bottom:6px;border-bottom:1px solid var(--border)">
+        <div class="gantt-name-col" style="display:flex;align-items:flex-end;justify-content:flex-end;padding-bottom:6px;border-bottom:1px solid var(--border)">
           <span style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase">인원</span>
         </div>
         <div id="timeRuler" style="flex:1;position:relative;height:56px;border-bottom:2px solid var(--border)"></div>
+        
       </div>
-      <div style="position:relative" id="ganttRowsWrap"><div id="ganttRows"></div><div id="ganttAllOverlay" style="position:absolute;top:0;left:140px;right:0;pointer-events:none;z-index:8"></div></div>
+      <div style="position:relative" id="ganttRowsWrap"><div id="ganttRows"></div><div id="ganttAllOverlay" style="position:absolute;top:0;left:140px;right:0;pointer-events:none;z-index:1"></div></div>
       <div class="empty" id="ganttEmpty">
         <div class="empty-icon">⏱</div>
         <div class="empty-text">소임 기준 배치표에서 인원을 배치하면 타임라인이 표시됩니다.</div>
