@@ -140,11 +140,22 @@ function redo() {
 // 현재 체크박스로 선택된 소임 행들의 id Set
 const selectedIds = new Set();
 
-// 필터: 모든 인원이 배치된 소임만 보기
-let showOnlyAllAssigned = false;
+// 필터: 선택 가능한 필터 목록을 배열로 저장합니다.
+// 가능한 값: 'all' (전원 참여), 'partial' (개별 참여), 'noneAssigned' (참여 없음)
+// 비어있으면 필터 없음(모두 표시)
+let selectedFilters = JSON.parse(localStorage.getItem('selectedFilters') || '[]');
 
 function getVisibleDutyRows() {
-  return showOnlyAllAssigned ? dutyRows.filter(r => isAllPersonnel(r)) : dutyRows;
+  if (!selectedFilters || !selectedFilters.length) return dutyRows;
+  const out = [];
+  dutyRows.forEach(r => {
+    const isAll = isAllPersonnel(r);
+    const hasAssigned = r.assigned && r.assigned.length > 0;
+    if (selectedFilters.includes('all') && isAll) out.push(r);
+    else if (selectedFilters.includes('partial') && hasAssigned && !isAll) out.push(r);
+    else if (selectedFilters.includes('noneAssigned') && !hasAssigned) out.push(r);
+  });
+  return out;
 }
 
 // ── 마우스 드래그로 여러 행 선택 ──

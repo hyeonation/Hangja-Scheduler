@@ -244,19 +244,88 @@ function toast(msg) {
 }
 
 // 토글: 전원 배치된 소임만 보기
-function toggleShowAllAssigned() {
-  if (typeof showOnlyAllAssigned === 'undefined') showOnlyAllAssigned = false;
-  showOnlyAllAssigned = !showOnlyAllAssigned;
+// Cycle filter: none -> all -> partial -> none
+function toggleShowAllAssigned(e) {
+  // open/close the filter popover
+  const existing = document.getElementById('filterMenu');
+  if (existing) { existing.remove(); return; }
+  showFilterMenu(e && e.currentTarget ? e.currentTarget : document.getElementById('showAllAssignedBtn'));
+}
+
+function applyShowAssignedFilter() {
   const btn = document.getElementById('showAllAssignedBtn');
+  const icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 4h18v2H3z"></path><path d="M6 10h12v2H6z"></path><path d="M10 16h4v2h-4z"></path></svg>';
   if (btn) {
-    btn.classList.toggle('btn-filter-active', showOnlyAllAssigned);
-    const icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 4h18v2H3z"></path><path d="M6 10h12v2H6z"></path><path d="M10 16h4v2h-4z"></path></svg>';
-    btn.innerHTML = icon + '<span style="margin-left:6px">' + '전원 참여' + '</span>';
+    // active visual when any filter applied
+    btn.classList.toggle('btn-filter-active', selectedFilters && selectedFilters.length > 0);
+    // label: single selection shows its name, multiple -> '필터 적용'
+    const labels = { all: '전원 참여', partial: '개별 참여', noneAssigned: '참여 없음' };
+    let label = '필터 없음';
+    if (selectedFilters && selectedFilters.length === 1) label = labels[selectedFilters[0]] || '필터';
+    else if (selectedFilters && selectedFilters.length > 1) label = '필터 적용';
+    btn.innerHTML = icon + '<span style="margin-left:6px">' + label + '</span>';
   }
+
   // Re-render views respecting the filter
   try { rebuildDutyTable(); } catch (e) {}
   try { renderOverview(); } catch (e) {}
-  toast(showOnlyAllAssigned ? '전원 배치된 소임만 표시함' : '전체 소임 보기로 복원');
+  try {
+    const ganttPage = document.getElementById('page1');
+    if (ganttPage && ganttPage.classList.contains('active')) refreshGantt();
+  } catch (e) {}
+
+  if (selectedFilters && selectedFilters.length === 1) {
+    const s = selectedFilters[0];
+    if (s === 'all') toast('전원 배치된 소임만 표시함');
+    else if (s === 'partial') toast('개별 참여 소임만 표시함');
+    else if (s === 'noneAssigned') toast('참여자 없는 소임만 표시함');
+  } else if (selectedFilters && selectedFilters.length > 1) {
+    toast('여러 필터가 적용됨');
+  } else {
+    toast('전체 소임 보기로 복원');
+  }
+}
+
+// show a small popover menu to select filters (checkboxes)
+function showFilterMenu(anchorEl) {
+  // remove existing
+  const existing = document.getElementById('filterMenu'); if (existing) existing.remove();
+  const menu = document.createElement('div'); menu.id = 'filterMenu';
+  menu.style.cssText = 'position:fixed;z-index:510;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.6);min-width:180px';
+
+  const makeItem = (key, text) => {
+    const id = 'filter_' + key;
+    const wrap = document.createElement('label'); wrap.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer';
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.id = id; cb.checked = (selectedFilters || []).includes(key);
+    cb.onchange = () => {
+      const arr = new Set(selectedFilters || []);
+      if (cb.checked) arr.add(key); else arr.delete(key);
+      selectedFilters = Array.from(arr);
+      try { localStorage.setItem('selectedFilters', JSON.stringify(selectedFilters)); } catch(e){}
+      applyShowAssignedFilter();
+    };
+    const span = document.createElement('span'); span.textContent = text; span.style.color='var(--text)';
+    wrap.appendChild(cb); wrap.appendChild(span);
+    return wrap;
+  };
+
+  menu.appendChild(makeItem('all','전원 참여'));
+  menu.appendChild(makeItem('partial','개별 참여'));
+  menu.appendChild(makeItem('noneAssigned','참여 없음'));
+
+  // click outside to close
+  setTimeout(()=>{
+    const onDoc = (ev) => { if (!menu.contains(ev.target) && ev.target !== anchorEl) { menu.remove(); document.removeEventListener('mousedown', onDoc); } };
+    document.addEventListener('mousedown', onDoc);
+  },0);
+
+  document.body.appendChild(menu);
+  // position under anchorEl
+  if (anchorEl) {
+    const r = anchorEl.getBoundingClientRect();
+    menu.style.left = (r.right - menu.offsetWidth) + 'px';
+    menu.style.top  = (r.bottom + 8) + 'px';
+  }
 }
 
 // ── 전원 소임 판단 ──
@@ -1555,12 +1624,12 @@ function refreshGantt(){
   const legend=document.getElementById('ganttLegend');
   rowsEl.innerHTML=''; legend.innerHTML='<span style="font-size:11px;color:var(--text-dim)">소임 범례</span>';
 
-  if(!personnel.length){emptyEl.style.display='block';return;}
-  emptyEl.style.display='none';
+  if(!personnel.length){ emptyEl.style.display='block'; return; }
   buildRuler();
 
-  [...new Set(dutyRows.map(r=>r.duty||'(미입력)'))].forEach(dn=>getColor(dn));
-  [...new Set(dutyRows.map(r=>r.duty||'(미입력)'))].forEach(dn=>{
+  const visRows = (typeof getVisibleDutyRows === 'function') ? getVisibleDutyRows() : dutyRows;
+  [...new Set(visRows.map(r=>r.duty||'(미입력)'))].forEach(dn=>getColor(dn));
+  [...new Set(visRows.map(r=>r.duty||'(미입력)'))].forEach(dn=>{
     const c=getColor(dn);
     const item=document.createElement('div'); item.className='legend-item';
     item.style.cssText=`background:${c.bg};border-color:${c.b};color:${c.t}`;
@@ -1580,11 +1649,15 @@ function refreshGantt(){
   const nmInView = nm>=0 && nm>=viewMin(ganttStartH) && nm<=viewMax(ganttEndH);
 
   // 전원 소임 오버레이: 개인 행들이 모두 렌더링된 후 높이 측정해서 그림
-  const allDuties = dutyRows.filter(r => isAllPersonnel(r));
+  const allDuties = visRows.filter(r => isAllPersonnel(r));
 
-  // 개인 행: 전원 소임 제외한 나머지만 표시
+  // 빈 상태: 표시할 소임이 하나도 없으면 empty 표시
+  if (!visRows.length) { emptyEl.style.display = 'block'; return; }
+  emptyEl.style.display = 'none';
+
+  // 개인 행: 항상 모든 인원을 고정으로 렌더링하되, 각 인원에 대해 현재 필터에 해당하는 소임만 표시
   personnel.forEach(p=>{
-    const myDuties=dutyRows.filter(r=>r.assigned.includes(p.name) && !isAllPersonnel(r));
+    const myDuties=visRows.filter(r=>r.assigned.includes(p.name) && !isAllPersonnel(r));
     const row=document.createElement('div'); row.className='gantt-row';
     const nc=document.createElement('div'); nc.className='gantt-person';
     // wrap name in a span to avoid layout collisions with position span
@@ -1633,8 +1706,9 @@ function renderAllOverlay() {
   if (!overlay) return;
   overlay.innerHTML = '';
 
-  // 항상 최신 전역 상태에서 계산
-  const allDuties = dutyRows.filter(r => isAllPersonnel(r));
+  // always compute from the currently visible rows so the overlay follows the filter
+  const visRows = (typeof getVisibleDutyRows === 'function') ? getVisibleDutyRows() : dutyRows;
+  const allDuties = visRows.filter(r => isAllPersonnel(r));
   if (!allDuties.length) return;
 
   const rowsEl = document.getElementById('ganttRows');
@@ -2283,6 +2357,13 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyPersonnelViewMode);
 } else {
   applyPersonnelViewMode();
+}
+
+// initialize showAssignedFilter button state on load as well
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyShowAssignedFilter);
+} else {
+  applyShowAssignedFilter();
 }
 
 
