@@ -28,6 +28,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn{height:32px;padding:0 14px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
 .btn-primary{background:var(--accent2);border-color:var(--accent);color:#fff}
 .btn-primary:hover{background:var(--accent);color:#000}
+.btn-filter-active{
+  /* light bluish background so the blue text/icon stand out */
+  background:linear-gradient(180deg,rgba(30,144,255,0.12),rgba(46,111,255,0.06));
+  border-color:var(--blue);
+  color:var(--blue);
+  font-weight:700;
+  box-shadow:0 10px 30px rgba(30,144,255,.12);
+}
+/* ensure SVG icon and text explicitly use blue (inherits currentColor but be explicit) */
+.btn-filter-active svg,.btn-filter-active span{ color:var(--blue); }
+.btn-filter-active:hover{filter:brightness(.98);transform:translateY(-1px);box-shadow:0 12px 34px rgba(30,144,255,.16)}
 .btn-ghost{background:transparent;color:var(--text-muted)}
 .btn-ghost:hover{background:var(--surface2);color:var(--text)}
 .btn-sm{height:26px;padding:0 10px;font-size:11px}
@@ -885,7 +896,7 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
   padding:6px 4px;
   overflow:hidden;
   cursor:default;
-  background:rgba(255,255,255,.13);
+  background:rgba(255,255,255,.08);
   border:1.5px solid rgba(255,255,255,.75);
   color:#fff;
   box-shadow:0 0 12px rgba(255,255,255,.12);

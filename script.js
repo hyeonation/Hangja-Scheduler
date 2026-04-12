@@ -243,6 +243,22 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// 토글: 전원 배치된 소임만 보기
+function toggleShowAllAssigned() {
+  if (typeof showOnlyAllAssigned === 'undefined') showOnlyAllAssigned = false;
+  showOnlyAllAssigned = !showOnlyAllAssigned;
+  const btn = document.getElementById('showAllAssignedBtn');
+  if (btn) {
+    btn.classList.toggle('btn-filter-active', showOnlyAllAssigned);
+    const icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 4h18v2H3z"></path><path d="M6 10h12v2H6z"></path><path d="M10 16h4v2h-4z"></path></svg>';
+    btn.innerHTML = icon + '<span style="margin-left:6px">' + '전원 참여' + '</span>';
+  }
+  // Re-render views respecting the filter
+  try { rebuildDutyTable(); } catch (e) {}
+  try { renderOverview(); } catch (e) {}
+  toast(showOnlyAllAssigned ? '전원 배치된 소임만 표시함' : '전체 소임 보기로 복원');
+}
+
 // ── 전원 소임 판단 ──
 // 등록된 모든 인원이 해당 row.assigned에 포함되어 있으면 '전원 소임'으로 간주
 function isAllPersonnel(row) {
@@ -295,10 +311,11 @@ function renderOverview() {
   track.innerHTML = ''; legend.innerHTML = ''; ruler.innerHTML = '';
 
   // 소임 이름 순서대로 색상을 미리 배정 (범례와 바 색상이 일치하도록)
-  [...new Set(dutyRows.map(r => r.duty||'(미입력)'))].forEach(dn => getColor(dn));
+  const visRows = (typeof getVisibleDutyRows === 'function') ? getVisibleDutyRows() : dutyRows;
+  [...new Set(visRows.map(r => r.duty||'(미입력)'))].forEach(dn => getColor(dn));
 
   // 범례 항목 생성 (소임 이름 + 색상 점)
-  [...new Set(dutyRows.map(r => r.duty||'(미입력)'))].forEach(dn => {
+  [...new Set(visRows.map(r => r.duty||'(미입력)'))].forEach(dn => {
     const c    = getColor(dn);
     const item = document.createElement('div');
     item.className = 'ov-legend-item';
@@ -327,7 +344,7 @@ function renderOverview() {
 
   // 각 dutyRow에 레인 번호 배정
   const rowLanes = {};
-  dutyRows.forEach(row => {
+  visRows.forEach(row => {
     const s = parseMin(row.start), e = parseMin(row.end);
     if (s === null || e === null) return;
     const rowSegs = segs(s, e);
@@ -349,7 +366,7 @@ function renderOverview() {
   track.style.height = trackH + 'px';
 
   // 각 소임의 바 렌더링
-  dutyRows.forEach(row => {
+  visRows.forEach(row => {
     const s = parseMin(row.start), e = parseMin(row.end);
     if (s === null || e === null) return;
     const allFlag     = isAllPersonnel(row);

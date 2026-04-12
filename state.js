@@ -140,6 +140,13 @@ function redo() {
 // 현재 체크박스로 선택된 소임 행들의 id Set
 const selectedIds = new Set();
 
+// 필터: 모든 인원이 배치된 소임만 보기
+let showOnlyAllAssigned = false;
+
+function getVisibleDutyRows() {
+  return showOnlyAllAssigned ? dutyRows.filter(r => isAllPersonnel(r)) : dutyRows;
+}
+
 // ── 마우스 드래그로 여러 행 선택 ──
 // tbody 위에서 마우스를 드래그하면 지나간 행들이 일괄 선택/해제된다.
 (function() {
@@ -396,7 +403,8 @@ function applyBulkShift() {
 function rebuildDutyTable() {
   const tbody = document.getElementById('dutyBody');
   tbody.innerHTML = '';
-  dutyRows.forEach(row => renderDutyRow(row));
+  const rows = (typeof getVisibleDutyRows === 'function') ? getVisibleDutyRows() : dutyRows;
+  rows.forEach(row => renderDutyRow(row));
   updateDutyEmpty();
   renumberRows();
   refreshAlertPanel();
