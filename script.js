@@ -252,7 +252,7 @@ function toggleShowAllAssigned(e) {
   showFilterMenu(e && e.currentTarget ? e.currentTarget : document.getElementById('showAllAssignedBtn'));
 }
 
-function applyShowAssignedFilter() {
+function applyShowAssignedFilter(silent) {
   const btn = document.getElementById('showAllAssignedBtn');
   const icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 4h18v2H3z"></path><path d="M6 10h12v2H6z"></path><path d="M10 16h4v2h-4z"></path></svg>';
   if (btn) {
@@ -274,15 +274,17 @@ function applyShowAssignedFilter() {
     if (ganttPage && ganttPage.classList.contains('active')) refreshGantt();
   } catch (e) {}
 
-  if (selectedFilters && selectedFilters.length === 1) {
-    const s = selectedFilters[0];
-    if (s === 'all') toast('전원 배치된 소임만 표시함');
-    else if (s === 'partial') toast('개별 참여 소임만 표시함');
-    else if (s === 'noneAssigned') toast('참여자 없는 소임만 표시함');
-  } else if (selectedFilters && selectedFilters.length > 1) {
-    toast('여러 필터가 적용됨');
-  } else {
-    toast('전체 소임 보기로 복원');
+  if (!silent) {
+    if (selectedFilters && selectedFilters.length === 1) {
+      const s = selectedFilters[0];
+      if (s === 'all') toast('전원 배치된 소임만 표시함');
+      else if (s === 'partial') toast('개별 참여 소임만 표시함');
+      else if (s === 'noneAssigned') toast('참여자 없는 소임만 표시함');
+    } else if (selectedFilters && selectedFilters.length > 1) {
+      toast('여러 필터가 적용됨');
+    } else {
+      toast('전체 소임 보기로 복원');
+    }
   }
 }
 
@@ -2361,9 +2363,9 @@ if (document.readyState === 'loading') {
 
 // initialize showAssignedFilter button state on load as well
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', applyShowAssignedFilter);
+  document.addEventListener('DOMContentLoaded', () => applyShowAssignedFilter(true));
 } else {
-  applyShowAssignedFilter();
+  applyShowAssignedFilter(true);
 }
 
 

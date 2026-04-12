@@ -143,7 +143,10 @@ const selectedIds = new Set();
 // 필터: 선택 가능한 필터 목록을 배열로 저장합니다.
 // 가능한 값: 'all' (전원 참여), 'partial' (개별 참여), 'noneAssigned' (참여 없음)
 // 비어있으면 필터 없음(모두 표시)
-let selectedFilters = JSON.parse(localStorage.getItem('selectedFilters') || '[]');
+// Start with no filters on app startup — clear any persisted selections so the app
+// always initializes to '필터 없음'. The UI will still persist choices during the session.
+let selectedFilters = [];
+try { localStorage.removeItem('selectedFilters'); } catch (e) { }
 
 function getVisibleDutyRows() {
   if (!selectedFilters || !selectedFilters.length) return dutyRows;
