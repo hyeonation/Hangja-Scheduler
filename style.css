@@ -220,18 +220,22 @@ tr.flash-copied{animation:flash-copied .55s ease-out}
 .gantt-row::after{
   content:'';
   position:absolute;
-  left:0; right:0;
+  left:135px; right:0;
   top:50%;
   height:1px;
   background:rgb(140, 150, 160);
+  border: dashed 1px var(--border);
   pointer-events:none;
   z-index:1;
 }
 .gantt-person{
   width:140px;
   min-width:140px;
-  /* padding:8px 12px 8px 24px; */
-  border-right:1px solid var(--border);
+  padding:0px 6px 0px 0px;
+  display:flex;
+  flex-direction:row;
+  justify-content:flex-end; /* right-align contents */
+  /* border-right:1px solid var(--border);
   flex-shrink:0;
   position:relative;
   z-index:2;
@@ -239,30 +243,40 @@ tr.flash-copied{animation:flash-copied .55s ease-out}
   border:1.5px solid var(--text-muted);
   border-radius:10px;
   display:flex;
-  flex-direction:column;
+  flex-direction:row;
   justify-content:center;
-  text-align: right;
+  text-align:right; */
 }
 .gantt-person:hover{background:rgba(255,255,255,.02)}
-.gantt-person-name{
-  font-size:13px;
-  font-weight:700;
-  display:block;
-  width:100%;
-  color:var(--text);
+.gantt-person-inner{
+  padding:1px 5px 1px 5px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end; /* right-align contents */
+  justify-content:flex-start;
+  background:rgba(255,255,255,.02);
+  border:1.5px solid var(--text-muted);
+  border-radius:10px;
+  gap:4px; /* reduced vertical spacing between name and position */
 }
-.gantt-person-inner{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
 .gantt-person-note{
   font-size:11px;
   color:var(--orange);
-  margin:0;
+  margin:0 5px 0 0;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
   max-width:120px;
   flex:0 0 auto;
 }
-.gantt-person-main{display:inline-block;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-person-main{
+  display:inline-block;
+  flex:1;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .gantt-person-pos{
   font-size:10px;
   font-weight:500;
@@ -697,9 +711,7 @@ tbody tr.selected-row{
   opacity: 0;
 }
 
-.hide-personnel .count-cell {
-  /* count column stays visible */
-}
+/* count column stays visible (no explicit styles needed) */
 /* Ensure table row hover still highlights rows even when personnel column is hidden */
 .hide-personnel tbody tr:hover {
   background: var(--surface2) !important;
@@ -766,19 +778,6 @@ tbody tr.selected-row{
 /* ── ROW DRAG-SELECT ── */
 #dutyTable tbody { user-select: none; }
 tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px solid rgba(63,185,80,.25); outline-offset:-1px; }
-
-
-.gantt-person-inner{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
-.gantt-person-note{
-  font-size:11px;
-  color:var(--orange);
-  margin:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  max-width:120px;
-  flex:0 0 auto;
-}
 
 
 /* ── DATE COPY MODAL ── */

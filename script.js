@@ -1625,8 +1625,8 @@ function refreshGantt(){
     // wrap name in a span to avoid layout collisions with position span
     const nameHtml = `<span class="gantt-person-main">${escapeHtml(p.name)}</span>`;
     const posHtml = p.position ? `<span class="gantt-person-pos">${escapeHtml(p.position)}</span>` : '';
-    const noteHtml = p.note ? `<div class="gantt-person-note" title="${escapeHtml(p.note)}">⚑ ${escapeHtml(p.note)}</div>` : '';
-    nc.innerHTML = `<div class="gantt-person-name"><div class="gantt-person-inner">${noteHtml}${nameHtml}</div>${posHtml}</div>`;
+    const noteHtml = p.note ? `<div class="gantt-person-note" title="${escapeHtml(p.note)}">⚑ ${escapeHtml(p.note)}</div>` : '<div style="height:16px"></div>';
+    nc.innerHTML = `<div style="flex:1;display:flex;flex-direction:row;justify-content:flex-end">${noteHtml}<div class="gantt-person-inner">${nameHtml}${posHtml}</div></div>`;
     row.appendChild(nc);
     const tl=document.createElement('div'); tl.className='gantt-timeline';
     if (nmInView) {
