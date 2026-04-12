@@ -677,11 +677,33 @@ tbody tr.selected-row{
   color:transparent;
 }
 .hide-personnel .chip-cell {
-  visibility: hidden;
-  
+  /* keep the table cell present so hover/row interactions still work,
+     but hide the inner chip content below */
+  visibility: visible;
+  pointer-events: auto;
 }
+/* hide chip contents but allow the TD to receive hover events */
+.hide-personnel .chip-cell .chip-area {
+  opacity: 0;
+  user-select: none;
+  pointer-events: none;
+  transition: opacity .12s;
+}
+.hide-personnel tbody tr:hover .chip-cell .chip-area {
+  /* keep content hidden even on hover */
+  opacity: 0;
+}
+
 .hide-personnel .count-cell {
   /* count column stays visible */
+}
+/* Ensure table row hover still highlights rows even when personnel column is hidden */
+.hide-personnel tbody tr:hover {
+  background: var(--surface2) !important;
+}
+/* also color individual cells to avoid cases where row background is not visible */
+.hide-personnel tbody tr:hover td {
+  background: var(--surface2) !important;
 }
 /* show only selected rows' personnel: hide all chip cells except for selected rows */
 /* legacy: .show-selected-only no longer hides by CSS; logic handled in JS */
