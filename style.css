@@ -758,6 +758,9 @@ tbody tr.selected-row { background:rgba(63,185,80,.07)!important; outline:1px so
   box-shadow:0 24px 56px rgba(0,0,0,.7);
   transform:translateY(16px);transition:transform .2s;
 }
+/* Date picker overlay: center horizontally but pin top when opened so modal grows downward only */
+#datePickerOverlay{align-items:flex-start;justify-content:center}
+#datePickerOverlay .copy-modal{margin-top:var(--datePickerTop,calc(50vh - 180px));max-height:92vh;overflow:auto}
 .copy-modal-overlay.open .copy-modal{transform:translateY(0);}
 .copy-modal-header{
   padding:16px 18px 14px;border-bottom:1px solid var(--border);

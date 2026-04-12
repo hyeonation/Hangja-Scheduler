@@ -91,7 +91,20 @@ function openDatePickerModal() {
   dpYear  = base.getFullYear();
   dpMonth = base.getMonth();
   renderDatePickerCalendar();
-  document.getElementById('datePickerOverlay').classList.add('open');
+  const overlay = document.getElementById('datePickerOverlay');
+  overlay.classList.add('open');
+  // Compute and fix the modal top position so subsequent calendar re-renders
+  // (different number of weeks) only grow downward.
+  const modal = overlay.querySelector('.copy-modal');
+  if (modal) {
+    // allow layout to settle
+    requestAnimationFrame(() => {
+      const vh = window.innerHeight;
+      const mh = Math.min(modal.offsetHeight, Math.floor(vh * 0.9));
+      const top = Math.max(12, Math.floor((vh - mh) / 2));
+      overlay.style.setProperty('--datePickerTop', top + 'px');
+    });
+  }
 }
 
 // 달력 모달 닫기 (오버레이 클릭 또는 직접 호출)
