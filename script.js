@@ -1208,89 +1208,49 @@ function moveSelectedBlock(direction) {
   // remaining rows (remove selected)
   const remaining = dutyRows.filter(r => !selectedSet.has(r.id));
 
-  const isContiguous = idxs.length === (lastIdx - firstIdx + 1);
-  if (isContiguous) {
-    // Move the whole contiguous block as one unit
-    if (direction < 0) {
-      if (firstIdx === 0) return;
-      const targetOriginal = firstIdx - 1;
-      const removedBefore = idxs.filter(i => i < targetOriginal).length;
-      const insertAt = Math.max(0, targetOriginal - removedBefore);
-      remaining.splice(insertAt, 0, ...block);
+  // Build contiguous segments from selected indices, e.g. [[2,3],[6,6],...]
+  const segments = [];
+  let segStart = idxs[0], segPrev = idxs[0];
+  for (let k = 1; k < idxs.length; k++) {
+    const cur = idxs[k];
+    if (cur === segPrev + 1) {
+      segPrev = cur; // extend
     } else {
-      if (lastIdx === dutyRows.length - 1) return;
-      const targetOriginal = lastIdx + 1;
-      const removedBefore = idxs.filter(i => i < targetOriginal).length;
-      const insertAt = Math.min(remaining.length, targetOriginal - removedBefore + 1);
-      remaining.splice(insertAt, 0, ...block);
+      segments.push({ start: segStart, end: segPrev });
+      segStart = cur; segPrev = cur;
     }
-    dutyRows = remaining;
+  }
+  segments.push({ start: segStart, end: segPrev });
+
+  // Operate on a copy to avoid mid-loop index confusion
+  let result = dutyRows.slice();
+  const n = result.length;
+  if (direction < 0) {
+    // Move each segment up by one; process ascending so earlier moves don't affect later indices
+    for (const seg of segments) {
+      const s = seg.start, e = seg.end;
+      if (s === 0) continue; // can't move this segment up
+      // swap the block [s..e] with the single item at s-1
+      const block = result.slice(s, e + 1);
+      const before = result[s - 1];
+      // replace range [s-1 .. e] with block then before
+      result.splice(s - 1, block.length + 1, ...block, before);
+    }
   } else {
-    // Non-contiguous: swap eligible selected rows one step on a copy
-    if (direction < 0) {
-      if (firstIdx === 0) return; // can't move
-      const allowed = [];
-      for (const idx of idxs) {
-        if (idx === 0) continue;
-        if (selectedSet.has(dutyRows[idx - 1].id)) continue; // above is selected -> skip
-        allowed.push(idx);
-      }
-      const result = dutyRows.slice();
-      allowed.sort((a,b)=>a-b);
-      for (const i of allowed) {
-        const tmp = result[i - 1]; result[i - 1] = result[i]; result[i] = tmp;
-      }
-      dutyRows = result;
-    } else {
-      if (lastIdx === dutyRows.length - 1) return; // can't move
-      const allowed = [];
-      for (const idx of idxs) {
-        if (idx === dutyRows.length - 1) continue;
-        if (selectedSet.has(dutyRows[idx + 1].id)) continue; // below is selected -> skip
-        allowed.push(idx);
-      }
-      const result = dutyRows.slice();
-      allowed.sort((a,b)=>b-a);
-      for (const i of allowed) {
-        const tmp = result[i + 1]; result[i + 1] = result[i]; result[i] = tmp;
-      }
-      dutyRows = result;
+    // Move segments down by one; process descending so later moves don't affect earlier indices
+    for (let si = segments.length - 1; si >= 0; si--) {
+      const seg = segments[si];
+      const s = seg.start, e = seg.end;
+      if (e === n - 1) continue; // can't move this segment down
+      const block = result.slice(s, e + 1);
+      const after = result[e + 1];
+      // replace range [s .. e+1] with after then block
+      result.splice(s, block.length + 1, after, ...block);
     }
   }
 
-  if (direction < 0) {
-    // move up by one: if contiguous block already handled, else swap eligible selected rows up
-    if (firstIdx === 0) return; // can't move
-    // for non-contiguous, allow swaps where the previous row is not selected
-    const allowed = [];
-    for (const idx of idxs) {
-      if (idx === 0) continue;
-      if (selectedSet.has(dutyRows[idx - 1].id)) continue; // above is selected -> skip
-      allowed.push(idx);
-    }
-    // perform swaps on a copy to avoid index-shift issues
-    const result = dutyRows.slice();
-    allowed.sort((a,b)=>a-b);
-    for (const i of allowed) {
-      const tmp = result[i - 1]; result[i - 1] = result[i]; result[i] = tmp;
-    }
-    dutyRows = result;
-  } else {
-    // move down by one: if contiguous block handled above, else swap eligible selected rows down
-    if (lastIdx === dutyRows.length - 1) return; // can't move
-    const allowed = [];
-    for (const idx of idxs) {
-      if (idx === dutyRows.length - 1) continue;
-      if (selectedSet.has(dutyRows[idx + 1].id)) continue; // below is selected -> skip
-      allowed.push(idx);
-    }
-    const result = dutyRows.slice();
-    allowed.sort((a,b)=>b-a);
-    for (const i of allowed) {
-      const tmp = result[i + 1]; result[i + 1] = result[i]; result[i] = tmp;
-    }
-    dutyRows = result;
-  }
+  dutyRows = result;
+
   
   save();
   rebuildDutyTable();
