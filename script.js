@@ -454,7 +454,7 @@ function copyDutyRow(rowId) {
   const src = dutyRows.find(r => r.id==rowId); if (!src) return;
   snapshot();
   const srcIdx = dutyRows.findIndex(r => r.id==rowId);
-  const newRow = { id: Date.now(), start: src.start, end: src.end, duty: src.duty, assigned: [], noConflict: !!src.noConflict };
+  const newRow = { id: Date.now(), start: src.start, end: src.end, duty: src.duty, assigned: !!src.noConflict ? [...src.assigned] : [], noConflict: !!src.noConflict };
   dutyRows.splice(srcIdx+1, 0, newRow); // 원본 바로 아래에 삽입
   save();
   rebuildDutyTable();
